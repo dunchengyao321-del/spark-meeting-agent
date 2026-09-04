@@ -1,0 +1,6 @@
+.agent-profile/
+bridge.log
+bridge.pid
+__pycache__/
+*.pyc
+transcripts/

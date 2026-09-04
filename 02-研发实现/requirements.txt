@@ -1,0 +1,4 @@
+# 语音智能体运行依赖
+playwright>=1.40.0    # 浏览器自动化（启动 Chrome / 注入 shim.js）
+websockets>=12.0      # bridge_server.py 的 WebSocket 服务端
+numpy>=1.24.0         # PCM Float32<->Int16 转换与电平统计

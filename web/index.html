@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>星火 · 会议语音智能体</title>
+<link rel="stylesheet" href="style.css?v=20260825a">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>星火 · 会议语音智能体</h1>
+    <p class="muted">多人会议实时对话 · 知识库与 MCP 接入 · 本地运行，音频不离开本机</p>
+  </div>
+  <div class="session-controls">
+    <a class="pill" href="/meeting.html" style="text-decoration:none" title="会议实时监控：对话流 / 投屏画面 / 唤醒与桥接配置">会议监控 →</a>
+    <button id="start" class="primary">开始对话</button>
+    <button id="stop" disabled>停止</button>
+    <span id="conn" class="pill idle">未连接</span>
+  </div>
+</header>
+
+<main>
+  <section class="col-main">
+    <div class="card">
+      <div class="card-head">
+        <h2>实时字幕</h2>
+        <div class="audio-controls">
+          <button id="share_meeting" title="捕获会议标签页/窗口声音">共享会议声音</button>
+          <span id="meeting_state" class="pill idle">会议声音：未接入</span>
+        </div>
+      </div>
+      <div id="transcripts" class="transcripts" aria-live="polite">
+        <div class="empty">点击「开始对话」，直接对着麦克风说话即可；也可「共享会议声音」接入会议音频（会议声道被点名「星火」时才会接话）。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>指令台</h2></div>
+      <div class="inject-row">
+        <input id="inject_text" placeholder="输入要让智能体说的话或要回答的问题…">
+        <button id="inject_say" class="primary">让星火说</button>
+        <button id="force_next" title="下一位参会者说完后，智能体主动接话">举手接话</button>
+      </div>
+      <div id="syslog" class="syslog"></div>
+    </div>
+  </section>
+
+  <aside class="col-side">
+    <div class="card agent-card">
+      <h2>智能体</h2>
+      <div id="agent_state" class="agent-state listening">
+        <span class="dot"></span><span id="agent_state_text">待命</span>
+      </div>
+      <p id="triggers" class="muted small"></p>
+    </div>
+
+    <div class="card">
+      <h2>延迟仪表</h2>
+      <table class="metrics">
+        <thead><tr><th>轮次</th><th>ASR</th><th>检索</th><th>LLM</th><th>TTS</th><th>总</th></tr></thead>
+        <tbody id="metrics_body"></tbody>
+      </table>
+      <p class="muted small">「总」= 说完到出声。</p>
+    </div>
+
+    <div class="card">
+      <h2>知识库</h2>
+      <p id="kb_stats" class="muted small">加载中…</p>
+      <div class="inject-row">
+        <input id="kb_query" placeholder="测试检索：输入一个问题">
+        <button id="kb_search">检索</button>
+        <button id="kb_ingest" title="重新读取 docs/kb 目录">刷新</button>
+      </div>
+      <div id="kb_hits" class="kb-hits"></div>
+      <div id="prefetch" class="prefetch"></div>
+    </div>
+
+    <div class="card">
+      <h2>MCP 工具</h2>
+      <p id="mcp_stats" class="muted small">加载中…</p>
+      <button id="mcp_start">连接 MCP</button>
+    </div>
+  </aside>
+</main>
+
+<div id="settings_modal" class="modal" hidden>
+  <div class="modal-body">
+    <div class="card-head"><h2>设置</h2><button id="settings_close" class="ghost">✕</button></div>
+    <p class="section-title">大脑 LLM · 火山引擎（豆包）国内直连</p>
+    <label>火山引擎 API Key
+      <input id="f_volcano_api_key" type="password" placeholder="留空保持不变">
+    </label>
+    <div class="row">
+      <label>LLM 提供方
+        <select id="f_llm_provider">
+          <option value="volcano">火山引擎 Ark（默认，国内直连）</option>
+          <option value="custom">自建/本地端点（如 Ollama 离线演示）</option>
+        </select>
+      </label>
+      <label>火山 LLM 模型<input id="f_volcano_llm_model" placeholder="doubao-seed-2-1-pro-260628"></label>
+    </div>
+    <label>火山 LLM Base URL<input id="f_volcano_llm_base_url" placeholder="https://ark.cn-beijing.volces.com/api/v3"></label>
+    <div class="row">
+      <label>自建 Base URL（提供方=custom 时生效）<input id="f_llm_base_url" placeholder="http://127.0.0.1:11434/v1"></label>
+      <label>自建模型<input id="f_llm_model" placeholder="qwen2.5:7b"></label>
+    </div>
+    <hr class="divider">
+    <p class="section-title">会议行为</p>
+    <div class="row toggles">
+      <label class="check"><input id="f_meeting_partial_asr" type="checkbox"> 边说边转（说话中显示实时草稿，命中唤醒提前预热）</label>
+      <label class="check"><input id="f_meeting_answer_questions" type="checkbox"> 直接提问无人接话时主动回答（如「你觉得呢？」）</label>
+      <label class="check"><input id="f_meeting_tool_filler" type="checkbox"> 调用工具前先垫一句「我查一下」</label>
+    </div>
+    <div class="row">
+      <label>唤醒名（逗号分隔，仅会议声道用）<input id="f_meeting_wake_names" placeholder="星火"></label>
+      <label>停顿判句 ms<input id="f_meeting_silence_ms" type="number" placeholder="700"></label>
+    </div>
+    <hr class="divider">
+    <p class="section-title">语音识别与播报</p>
+    <div class="row">
+      <label>识别引擎（ASR）<select id="f_asr_engine">
+        <option value="volcano">豆包语音识别大模型（推荐，在线）</option>
+        <option value="apple">Apple 本地识别（离线）</option>
+      </select></label>
+      <label>Apple 本地识别语言（引擎=apple 时生效）<input id="f_apple_asr_locale" placeholder="zh-CN"></label>
+    </div>
+    <div class="row">
+      <label>TTS 引擎<select id="f_tts_engine">
+        <option value="volcano">火山豆包语音（真人级，在线）</option>
+        <option value="say">macOS say（离线）</option>
+      </select></label>
+    </div>
+    <div class="row">
+      <label>火山语音 Key<input id="f_volcano_tts_api_key" type="password" autocomplete="off" placeholder="豆包语音控制台「API Key」创建；留空保持不变"></label>
+      <label>火山音色 ID<input id="f_volcano_tts_speaker" placeholder="zh_male_wennuanahu_uranus_bigtts"></label>
+    </div>
+    <div class="row">
+      <label>macOS say 音色（引擎=say 时生效）<input id="f_tts_voice" placeholder="Tingting"></label>
+    </div>
+    <div class="row">
+      <button id="apple_auth" class="ghost" type="button">授权本地语音识别（macOS 首次需要）</button>
+      <span id="apple_auth_status" class="muted small"></span>
+    </div>
+    <label>知识库目录<input id="f_kb_dir" placeholder="docs/kb"></label>
+    <div class="actions">
+      <span class="muted small">留空的项保持不变</span>
+      <button id="settings_save" class="primary">保存</button>
+      <span id="settings_status" class="muted small"></span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <button id="settings_open" class="ghost">设置</button>
+  <span class="muted small">仅监听本机 · 音频与密钥不上传第三方 · MIT 开源</span>
+</footer>
+
+<script type="module" src="app.js?v=20260825a"></script>
+</body>
+</html>

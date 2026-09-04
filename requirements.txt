@@ -1,0 +1,4 @@
+# 会议控制台服务端（./install_macos.sh 会创建 .venv 并安装）
+fastapi>=0.110
+uvicorn>=0.27
+websockets>=12

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>ai.spark.appleasr</string>
+  <key>CFBundleName</key><string>AppleASR</string>
+  <key>CFBundleExecutable</key><string>apple_asr</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>星火会议智能体需要语音识别权限，把你和参会者的语音转成文字，仅在本机处理。</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>星火会议智能体需要麦克风权限以收听会议语音（本页面通过浏览器采集，此权限供本地命令行转写使用）。</string>
+</dict>
+</plist>

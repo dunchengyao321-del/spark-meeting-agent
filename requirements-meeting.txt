@@ -1,0 +1,8 @@
+# Meeting voice agent console (server/app.py).
+# Python >= 3.10. Install into a virtualenv:
+#   python3 -m venv .venv && ./.venv/bin/pip install -r requirements-meeting.txt
+fastapi>=0.110
+uvicorn>=0.29
+websockets>=12
+# 飞书会议桥接（路线 A：托管浏览器 + BlackHole）
+playwright>=1.44

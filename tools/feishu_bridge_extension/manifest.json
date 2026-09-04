@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "星火飞书会议桥接",
+  "version": "0.1.0",
+  "description": "向本地星火服务（127.0.0.1:8765）上报飞书会议页面状态，用于会议绑定与代我发言。",
+  "content_scripts": [
+    {
+      "matches": ["https://vc.feishu.cn/*", "https://*.feishu.cn/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": ["http://127.0.0.1/*"]
+}

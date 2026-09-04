@@ -1,0 +1,10 @@
+{
+  "meeting_id": "",
+  "ws_url": "ws://127.0.0.1:8876/ws",
+  "pipeline_url": "ws://127.0.0.1:8765/ws/meeting",
+  "bridge_port": 8876,
+  "downlink_gain": 2.0,
+  "pipeline_channel": 1,
+  "debug_port": 9222,
+  "join_timeout": 3600
+}

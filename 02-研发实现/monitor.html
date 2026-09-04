@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>星火智能体 · 控制面板</title>
+<style>
+  :root {
+    --bg:#0f1117; --surface:#1a1d27; --surface2:#232733; --border:#2e3340;
+    --text:#e4e7ef; --soft:#8b92a5; --dim:#5c6275;
+    --accent:#4b8fff; --accent2:#6c5dd3; --green:#2dd4a0; --red:#f0564b;
+    --orange:#ffa42d; --purple:#9d7aff; --blue:#3ab0ff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system,"PingFang SC","SF Pro SC",sans-serif; }
+  .app { max-width:1280px; margin:0 auto; padding:16px 20px; }
+
+  /* ---- header ---- */
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  header h1 { font-size:17px; font-weight:700; }
+  header .sub { font-size:12px; color:var(--soft); margin-top:2px; }
+  .header-right { display:flex; gap:10px; align-items:center; }
+  .pill { padding:3px 12px; border-radius:999px; font-size:11px; font-weight:600; background:var(--surface2); color:var(--soft); white-space:nowrap; }
+  .pill.on { background:rgba(45,212,160,.15); color:var(--green); }
+  .pill.speaking { background:rgba(45,212,160,.15); color:var(--green); }
+  .pill.thinking { background:rgba(255,164,45,.15); color:var(--orange); }
+  .pill.err { background:rgba(240,86,75,.15); color:var(--red); }
+  .dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; }
+  .dot.green { background:var(--green); } .dot.red { background:var(--red); }
+  .dot.gray { background:var(--dim); } .dot.orange { background:var(--orange); }
+
+  /* ---- tabs ---- */
+  .tabs { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; margin-bottom:16px; }
+  .tab { padding:7px 18px; border-radius:7px; cursor:pointer; color:var(--soft); font-weight:500; font-size:13px; transition:.15s; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:#fff; background:var(--accent); }
+
+  /* ---- layout ---- */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card-title { font-size:13px; font-weight:700; color:var(--soft); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+  .grid2 { display:grid; grid-template-columns: 1fr 340px; gap:14px; }
+  .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; }
+  @media(max-width:860px){ .grid2,.grid3{grid-template-columns:1fr;} }
+
+  /* ---- transcript stream ---- */
+  #stream { height:56vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+  #stream::-webkit-scrollbar { width:4px; }
+  #stream::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .msg { padding:8px 12px; border-radius:10px; background:var(--surface2); font-size:13px; }
+  .msg .who { font-size:11px; font-weight:700; margin-bottom:2px; opacity:.7; }
+  .msg .ts { font-size:10px; color:var(--dim); margin-left:6px; }
+  .msg.partial { opacity:.5; font-style:italic; }
+  .msg.agent { background:rgba(45,212,160,.1); border-left:2px solid var(--green); }
+  .msg.agent .who { color:var(--green); }
+  .msg.me { background:rgba(58,176,255,.1); border-left:2px solid var(--blue); }
+  .msg.me .who { color:var(--blue); }
+  .msg.chat { background:rgba(157,122,255,.1); border-left:2px solid var(--purple); }
+  .msg.chat .who { color:var(--purple); }
+  .msg.ctrl { background:rgba(255,164,45,.08); border-left:2px solid var(--orange); }
+  .msg.ctrl .who { color:var(--orange); }
+  .msg.sys { background:transparent; color:var(--dim); text-align:center; font-size:11px; padding:2px; }
+
+  /* ---- screen ---- */
+  #screenShot { width:100%; border-radius:8px; border:1px solid var(--border); display:block; background:var(--surface2); min-height:120px; object-fit:contain; }
+
+  /* ---- status ---- */
+  .kv { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .kv:last-child { border-bottom:none; }
+  .kv .k { color:var(--soft); }
+  .kv .v { font-weight:600; }
+
+  /* ---- agent state big card ---- */
+  .agent-card { text-align:center; padding:20px; }
+  .agent-icon { font-size:36px; margin-bottom:8px; }
+  .agent-state-text { font-size:16px; font-weight:700; }
+  .agent-detail { font-size:11px; color:var(--soft); margin-top:4px; }
+
+  /* ---- metrics ---- */
+  .metrics { width:100%; font-size:12px; border-collapse:collapse; }
+  .metrics th { color:var(--soft); font-weight:500; padding:4px 6px; text-align:right; }
+  .metrics td { padding:4px 6px; text-align:right; font-weight:600; }
+  .metrics td:first-child, .metrics th:first-child { text-align:left; }
+
+  /* ---- forms ---- */
+  label { display:block; font-size:12px; color:var(--soft); margin:10px 0 5px; }
+  input[type=text], input[type=password], input[type=number], select, textarea {
+    width:100%; border:1px solid var(--border); border-radius:8px; padding:8px 10px;
+    font:inherit; background:var(--surface2); color:var(--text); }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
+    outline:none; border-color:var(--accent); }
+  textarea { min-height:80px; resize:vertical; }
+  .row { display:flex; gap:14px; }
+  .row > * { flex:1; }
+  .check { display:inline-flex; align-items:center; gap:6px; color:var(--text); font-size:12px; cursor:pointer; }
+  .check input { width:16px; height:16px; accent-color:var(--accent); }
+  .btn {
+    background:var(--accent); color:#fff; border:none; border-radius:9px;
+    padding:9px 20px; font-weight:600; cursor:pointer; font-size:13px; transition:.15s; }
+  .btn:hover { filter:brightness(1.1); }
+  .btn.ghost { background:var(--surface2); color:var(--soft); border:1px solid var(--border); }
+  .btn.danger { background:var(--red); }
+  .btn.warn { background:var(--orange); color:#1a1d27; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-row { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .save-msg { font-size:11px; color:var(--green); margin-left:8px; }
+
+  /* ---- control panel ---- */
+  .control-group { margin-bottom:18px; }
+  .control-group .label { font-size:12px; color:var(--soft); margin-bottom:6px; }
+  .big-input { font-size:14px; padding:12px; }
+  .control-hint { font-size:11px; color:var(--dim); margin-top:4px; }
+
+  /* ---- records ---- */
+  .date-list { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .date-chip { padding:5px 12px; border-radius:8px; background:var(--surface2); color:var(--soft);
+    font-size:12px; cursor:pointer; border:1px solid var(--border); transition:.15s; }
+  .date-chip:hover { color:var(--text); }
+  .date-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #recordStream { max-height:56vh; overflow-y:auto; }
+  #recordStream::-webkit-scrollbar { width:4px; }
+  #recordStream::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .empty { text-align:center; color:var(--dim); padding:40px; font-size:13px; }
+
+  /* ---- hidden ---- */
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>星火会议智能体 · 控制面板</h1>
+      <div class="sub">实时监控 / 会议记录 / 人工控制 / 系统配置</div>
+    </div>
+    <div class="header-right">
+      <span id="conn" class="pill"><span class="dot gray"></span>未连接</span>
+      <span id="agentState" class="pill">智能体：-</span>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-v="monitor">实时监控</div>
+    <div class="tab" data-v="records">会议记录</div>
+    <div class="tab" data-v="control">人工控制</div>
+    <div class="tab" data-v="config">系统配置</div>
+  </div>
+
+  <!-- ========== Tab 1: 实时监控 ========== -->
+  <div id="v-monitor">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-title">
+            <span>实时对话流</span>
+            <span id="msgCount" class="pill" style="font-size:10px">0 条</span>
+          </div>
+          <div id="stream"><div class="msg sys">等待会议事件…</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">会议控制</div>
+          <div class="kv"><span class="k">当前会议</span><span class="v"><span id="curMeeting">-</span>
+            <span id="meetingState" class="pill" style="font-size:10px;display:none;margin-left:6px"></span></span></div>
+          <label style="margin-top:10px">会议 ID（9 位数字，输入后一键入会）</label>
+          <div class="row" style="align-items:flex-end">
+            <input type="text" id="joinMeetingId" placeholder="如 142281339" style="flex:1">
+            <button class="btn" id="btnJoin" style="margin-top:0;white-space:nowrap">一键入会</button>
+          </div>
+          <div id="joinMsg" class="save-msg"></div>
+          <div class="row" style="margin-top:8px">
+            <label>下行增益<input type="text" id="cfgGain" style="width:70px"></label>
+            <label>声道<select id="cfgChannel" style="width:170px">
+              <option value="0">0 = 主人（免唤醒）</option>
+              <option value="1">1 = 会议（点名仲裁）</option>
+            </select></label>
+            <button class="btn ghost" id="saveBridge" style="margin-top:0;white-space:nowrap;padding:8px 12px">保存</button>
+          </div>
+          <div id="saveBridgeMsg" class="save-msg"></div>
+        </div>
+        <div class="card agent-card">
+          <div class="agent-icon" id="agentIcon">🔇</div>
+          <div class="agent-state-text" id="agentStateText">待命</div>
+          <div class="agent-detail" id="agentDetail">等待唤醒</div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span>待本人回答 <span id="pendingCount" class="pill" style="font-size:10px;background:rgba(240,86,75,.15);color:var(--red)">0</span></span>
+            <button class="btn ghost" id="clearPending" style="padding:3px 10px;font-size:11px">清空</button>
+          </div>
+          <div id="pendingList" style="font-size:12px;max-height:150px;overflow-y:auto">
+            <div style="color:var(--dim)">需要本人解释或拍板的问题会记录在这里</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">投屏画面</div>
+          <img id="screenShot" alt="暂无投屏" style="background:var(--surface2);min-height:100px">
+          <div id="screenMeta" style="font-size:11px;color:var(--soft);margin-top:6px">尚未收到投屏</div>
+        </div>
+        <div class="card">
+          <div class="card-title">链路状态</div>
+          <div class="kv"><span class="k">桥接服务 (8876)</span><span class="v" id="stBridge">-</span></div>
+          <div class="kv"><span class="k">管线服务 (8765)</span><span class="v" id="stPipeline">-</span></div>
+          <div class="kv"><span class="k">监控服务 (8877)</span><span class="v" id="stMonitor">在线</span></div>
+          <div class="kv"><span class="k">聊天消息</span><span class="v" id="stChat">0</span></div>
+          <div class="kv"><span class="k">投屏帧数</span><span class="v" id="stScreen">0</span></div>
+          <div class="kv"><span class="k">运行时长</span><span class="v" id="stUptime">-</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">延迟仪表（最近一轮）</div>
+          <table class="metrics">
+            <thead><tr><th>轮次</th><th>ASR</th><th>LLM</th><th>TTS</th><th>总</th></tr></thead>
+            <tbody id="metricsBody"><tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无数据</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Tab 2: 会议记录（按会议隔离，默认当前会议） ========== -->
+  <div id="v-records" class="hidden">
+    <div class="grid2">
+      <div class="card" style="max-width:340px">
+        <div class="card-title">
+          <span>会议列表</span>
+          <button class="btn ghost" id="refreshRecords" style="padding:5px 14px;font-size:12px">刷新</button>
+        </div>
+        <div id="meetingList" style="max-height:56vh;overflow-y:auto"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span id="recordTitle">会议内容</span></div>
+        <div id="recordStream">
+          <div class="empty">选择左侧会议查看记录（默认展示当前会议）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Tab 3: 人工控制 ========== -->
+  <div id="v-control" class="hidden">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-title">让智能体说话</div>
+          <div class="control-group">
+            <div class="label">输入要让智能体在会议中说的文本</div>
+            <textarea id="injectText" class="big-input" placeholder="例如：大家好，我是星火智能体，有什么可以帮你们的吗？"></textarea>
+            <div class="control-hint">文本将作为智能体的直接回复在会议中语音播出，同时文字会代发到聊天框。</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btnInject">让星火说</button>
+            <button class="btn warn" id="btnForce">举手接话</button>
+          </div>
+          <div id="injectMsg" class="save-msg"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">紧急控制</div>
+          <div class="control-group">
+            <div class="label">紧急停止（立即打断智能体当前发言）</div>
+            <div class="control-hint">清空所有上行 TTS 音频队列，智能体立即闭嘴。适用于说错话、回答方向不对等场景。</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn danger" id="btnStop">紧急停止</button>
+          </div>
+          <div id="stopMsg" class="save-msg"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">当前智能体状态</div>
+          <div class="agent-card" style="padding:16px">
+            <div class="agent-icon" id="ctrlAgentIcon">🔇</div>
+            <div class="agent-state-text" id="ctrlAgentState">待命</div>
+            <div class="agent-detail" id="ctrlAgentDetail">等待唤醒</div>
+          </div>
+          <div class="kv"><span class="k">当前状态</span><span class="v" id="ctrlState">-</span></div>
+          <div class="kv"><span class="k">触发原因</span><span class="v" id="ctrlReason">-</span></div>
+          <div class="kv"><span class="k">消息总数</span><span class="v" id="ctrlMsgCount">0</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">触发规则</div>
+          <div style="font-size:12px;color:var(--soft);line-height:2" id="triggerRules">
+            <div>• 点名唤醒：说出唤醒词</div>
+            <div>• 明确移交：如「你来说一下」</div>
+            <div>• 被直接提问且无人接话（2秒后接话）</div>
+            <div>• 控制台手动触发（本页面）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Tab 4: 系统配置 ========== -->
+  <div id="v-config" class="hidden">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-title">分身人格与行为限制（保存后数秒内生效）</div>
+          <label>人格与限制（定义智能体是谁、能说什么、不能说什么）</label>
+          <textarea id="cfgSystemPrompt" style="min-height:180px" placeholder="你是用户的会议分身，代替用户参加飞书会议…"></textarea>
+          <label>唤醒词（逗号分隔）</label>
+          <input type="text" id="cfgWakeNames" placeholder="星火，顿承尧，承尧…">
+          <div class="row" style="margin-top:10px">
+            <label class="check"><input type="checkbox" id="cfgWakeRequired"> 必须喊唤醒词才回答</label>
+            <label class="check"><input type="checkbox" id="cfgAnswerQ"> 直接提问无人接话时也回答</label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="check"><input type="checkbox" id="cfgPartialASR"> 边说边转（实时草稿）</label>
+            <label class="check"><input type="checkbox" id="cfgToolFiller"> 调用工具前先垫一句</label>
+          </div>
+          <div class="row">
+            <label>停顿判句 ms<input type="number" id="cfgSilenceMs" placeholder="700"></label>
+            <label>最小端点 ms<input type="number" id="cfgEndpointMs" placeholder="250"></label>
+          </div>
+          <label>补充人设（persona，可选，附加在人格之后）</label>
+          <textarea id="cfgPersona" placeholder="（可选）额外的身份补充…"></textarea>
+          <div class="btn-row">
+            <button class="btn" id="savePipeline">保存人格与行为配置</button>
+            <span id="savePipelineMsg" class="save-msg"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">LLM 大模型配置</div>
+          <label>LLM 提供方</label>
+          <select id="cfgLLMProvider">
+            <option value="volcano">火山引擎 Ark（默认，国内直连）</option>
+            <option value="custom">自建/本地端点</option>
+          </select>
+          <div class="row">
+            <label>火山 LLM 模型<input id="cfgVolcanoModel" placeholder="doubao-seed-2-1-pro-260628"></label>
+            <label>深度思考
+              <select id="cfgThinking"><option value="disabled">关闭（默认，低延迟）</option><option value="auto">自动</option><option value="enabled">开启</option></select>
+            </label>
+          </div>
+          <label>火山引擎 API Key<input type="password" id="cfgVolcanoKey" placeholder="留空保持不变"></label>
+          <div class="row">
+            <label>自建 Base URL<input id="cfgLLMBaseURL" placeholder="http://127.0.0.1:11434/v1"></label>
+            <label>自建模型名<input id="cfgLLMModel" placeholder="qwen2.5:7b"></label>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="saveLLM">保存 LLM 配置</button>
+            <span id="saveLLMMsg" class="save-msg"></span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">语音识别与合成</div>
+          <label>ASR 引擎</label>
+          <select id="cfgASREngine">
+            <option value="volcano">豆包语音识别（在线，推荐）</option>
+            <option value="apple">Apple 本地识别（离线）</option>
+          </select>
+          <label>Apple 本地识别语言<input id="cfgAppleLocale" placeholder="zh-CN"></label>
+          <hr style="border-color:var(--border);margin:12px 0">
+          <label>TTS 引擎</label>
+          <select id="cfgTTSEngine">
+            <option value="volcano">火山豆包语音（在线，推荐）</option>
+            <option value="say">macOS say（离线）</option>
+          </select>
+          <div class="row">
+            <label>火山语音 Key<input type="password" id="cfgTTSKey" placeholder="留空保持不变"></label>
+            <label>火山音色 ID<input id="cfgTTSSpeaker" placeholder="zh_male_wennuanahu_uranus_bigtts"></label>
+          </div>
+          <label>macOS say 音色<input id="cfgTTSVoice" placeholder="Tingting"></label>
+          <div class="btn-row">
+            <button class="btn" id="saveVoice">保存语音配置</button>
+            <span id="saveVoiceMsg" class="save-msg"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">知识库</div>
+          <div class="kv"><span class="k">当前状态</span><span class="v" id="kbStats">加载中…</span></div>
+          <label style="margin-top:10px">批量导入（可多选 .md / .markdown / .txt 文件）</label>
+          <input type="file" id="kbFiles" multiple accept=".md,.markdown,.txt" style="font-size:12px">
+          <div class="btn-row">
+            <button class="btn" id="btnKbUpload">导入并重建索引</button>
+            <span id="kbUploadMsg" class="save-msg"></span>
+          </div>
+          <div style="font-size:11px;color:var(--soft);margin-top:12px;line-height:1.8">
+            <b style="color:var(--text)">知识库文件格式说明</b><br>
+            · 支持 <b>.md / .markdown / .txt</b> 纯文本文件，UTF-8 编码<br>
+            · 一个文件一个主题，文件名即主题名（如「退换货规则.md」）<br>
+            · 文件内用 <b># 标题</b> 分节效果最好：每个标题下的内容会被切成独立知识块<br>
+            · 内容写大白话事实即可：规则、流程、FAQ、产品说明、历史纪要<br>
+            · 导入后智能体回答时自动引用，无需重启<br>
+            · 单个文件建议不超过 200KB；一次最多导入 50 个文件
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const BRIDGE_WS = "ws://127.0.0.1:8876/monitor";
+const PIPELINE_API = "http://127.0.0.1:8765/api";
+const MONITOR_API = "http://127.0.0.1:8877";
+
+const stream = $("#stream");
+let firstEvent = true;
+let msgCount = 0;
+let chatCount = 0;
+let screenCount = 0;
+let ws = null;
+
+const AGENT_ICONS = {
+  listening: "👂", speaking: "🗣️", thinking: "🧠",
+  idle: "🔇", error: "⚠️"
+};
+
+// ---- 消息渲染 ----
+function addMsg(cls, who, text, partial, ts) {
+  if (firstEvent) { stream.innerHTML = ""; firstEvent = false; }
+  const d = document.createElement("div");
+  d.className = "msg " + cls + (partial ? " partial" : "");
+  const time = ts ? new Date(ts).toLocaleTimeString("zh-CN", {hour12:false}) : "";
+  d.innerHTML = `<div class="who"></div><div class="what"></div>`;
+  d.querySelector(".who").textContent = who + (time ? `  ${time}` : "");
+  d.querySelector(".what").textContent = text;
+  stream.appendChild(d);
+  stream.scrollTop = stream.scrollHeight;
+  msgCount++;
+  $("#msgCount").textContent = msgCount + " 条";
+  $("#ctrlMsgCount").textContent = msgCount;
+}
+
+function sysMsg(text) { addMsg("sys", "", text, false); }
+
+function speakerClass(sp) {
+  if (sp === "agent") return "agent";
+  if (sp === "我" || sp === "控制台") return "me";
+  if ((sp || "").includes("聊天")) return "chat";
+  return "";
+}
+
+function updateAgentState(state, reason) {
+  const icon = AGENT_ICONS[state] || "🔇";
+  const text = {listening:"监听中", speaking:"正在说话", thinking:"思考中…", idle:"待命", error:"错误"}[state] || state;
+  const detail = reason || {listening:"等待唤醒词", speaking:"语音播出中", thinking:"正在生成回复", idle:"等待唤醒", error:"发生错误"}[state] || "";
+
+  $("#agentIcon").textContent = icon;
+  $("#agentStateText").textContent = text;
+  $("#agentDetail").textContent = detail;
+  $("#ctrlAgentIcon").textContent = icon;
+  $("#ctrlAgentState").textContent = text;
+  $("#ctrlAgentDetail").textContent = detail;
+  $("#ctrlState").textContent = text;
+  $("#ctrlReason").textContent = reason || "-";
+
+  const pill = $("#agentState");
+  pill.textContent = "智能体：" + text;
+  pill.className = "pill " + (state === "speaking" ? "speaking" : state === "thinking" ? "thinking" : state === "error" ? "err" : "");
+}
+
+// ---- WebSocket 连接 ----
+function connect() {
+  ws = new WebSocket(BRIDGE_WS);
+  ws.onopen = () => {
+    $("#conn").innerHTML = '<span class="dot green"></span>已连接';
+    $("#conn").className = "pill on";
+    $("#stBridge").textContent = "在线";
+  };
+  ws.onclose = () => {
+    $("#conn").innerHTML = '<span class="dot red"></span>重连中…';
+    $("#conn").className = "pill err";
+    $("#stBridge").textContent = "离线";
+    setTimeout(connect, 3000);
+  };
+  ws.onmessage = (e) => {
+    let ev; try { ev = JSON.parse(e.data); } catch { return; }
+    const t = ev.type || "";
+    if (t === "transcript.final" || t === "transcript.partial") {
+      addMsg(speakerClass(ev.speaker), ev.speaker || "?", ev.text || "", t === "transcript.partial", ev.ts);
+      if (t === "transcript.final" && (ev.speaker||"").includes("聊天")) {
+        chatCount++;
+        $("#stChat").textContent = chatCount;
+      }
+    } else if (t === "agent.state") {
+      updateAgentState(ev.state || "idle", ev.reason);
+    } else if (t === "clear_audio") {
+      sysMsg("—— 智能体被打断 ——");
+    } else if (t === "screen.frame" && ev.image_b64) {
+      $("#screenShot").src = "data:image/jpeg;base64," + ev.image_b64;
+      $("#screenMeta").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN",{hour12:false});
+      screenCount++;
+      $("#stScreen").textContent = screenCount;
+    } else if (t === "session.error") {
+      sysMsg("⚠ " + (ev.error || ""));
+      updateAgentState("error", ev.error);
+    } else if (t === "session.state") {
+      if (ev.triggers) {
+        const rules = ev.triggers.map(t => `<div>• ${t}</div>`).join("");
+        $("#triggerRules").innerHTML = rules;
+      }
+    } else if (t === "metrics.turn") {
+      const m = ev;
+      const row = `<tr><td>${m.engine||"pipeline"}</td><td>${(m.asr_ms||0).toFixed(0)}ms</td><td>${(m.llm_ms||0).toFixed(0)}ms</td><td>${(m.tts_ms||0).toFixed(0)}ms</td><td style="color:var(--accent)">${(m.total_ms||0).toFixed(0)}ms</td></tr>`;
+      $("#metricsBody").innerHTML = row;
+    }
+  };
+}
+connect();
+
+// ---- 运行时长 ----
+const startTime = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  $("#stUptime").textContent = h > 0 ? `${h}h${m%60}m` : `${m}m${s%60}s`;
+}, 1000);
+
+// ---- 管线配置加载 ----
+async function loadPipelineCfg() {
+  try {
+    const d = await (await fetch(`${PIPELINE_API}/config`)).json();
+    $("#cfgWakeNames").value = (d.meeting_wake_names || []).join("，");
+    $("#cfgWakeRequired").checked = !!d.meeting_wake_required;
+    $("#cfgAnswerQ").checked = !!d.meeting_answer_questions;
+    $("#cfgPartialASR").checked = !!d.meeting_partial_asr;
+    $("#cfgToolFiller").checked = !!d.meeting_tool_filler;
+    $("#cfgSilenceMs").value = d.meeting_silence_ms || 700;
+    $("#cfgEndpointMs").value = d.meeting_min_endpoint_ms || 250;
+    $("#cfgSystemPrompt").value = d.local_voice_system_prompt || "";
+    $("#cfgPersona").value = d.persona || "";
+    $("#cfgLLMProvider").value = d.llm_provider || "volcano";
+    $("#cfgVolcanoModel").value = d.volcano_llm_model || "";
+    $("#cfgThinking").value = d.volcano_thinking || "disabled";
+    $("#cfgLLMBaseURL").value = d.llm_base_url || "";
+    $("#cfgLLMModel").value = d.llm_model || "";
+    $("#cfgASREngine").value = d.asr_engine || "volcano";
+    $("#cfgAppleLocale").value = d.apple_asr_locale || "zh-CN";
+    $("#cfgTTSEngine").value = d.tts_engine || "volcano";
+    $("#cfgTTSSpeaker").value = d.volcano_tts_speaker || "";
+    $("#cfgTTSVoice").value = d.tts_voice || "Tingting";
+    $("#cfgKbDir").value = d.kb_dir || "docs/kb";
+    $("#stPipeline").textContent = "在线";
+  } catch {
+    $("#stPipeline").textContent = "离线";
+  }
+}
+
+// ---- 保存配置 ----
+async function postConfig(body) {
+  await fetch(`${PIPELINE_API}/config`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+}
+
+$("#savePipeline").onclick = async () => {
+  await postConfig({
+    local_voice_system_prompt: $("#cfgSystemPrompt").value,
+    meeting_wake_names: $("#cfgWakeNames").value.split(/[,，]/).map(s=>s.trim()).filter(Boolean),
+    meeting_wake_required: $("#cfgWakeRequired").checked,
+    meeting_answer_questions: $("#cfgAnswerQ").checked,
+    meeting_partial_asr: $("#cfgPartialASR").checked,
+    meeting_tool_filler: $("#cfgToolFiller").checked,
+    meeting_silence_ms: parseInt($("#cfgSilenceMs").value) || 700,
+    meeting_min_endpoint_ms: parseInt($("#cfgEndpointMs").value) || 250,
+    persona: $("#cfgPersona").value,
+  });
+  $("#savePipelineMsg").textContent = "已保存（数秒后生效）";
+  setTimeout(() => $("#savePipelineMsg").textContent = "", 3000);
+};
+
+$("#saveLLM").onclick = async () => {
+  const body = {
+    llm_provider: $("#cfgLLMProvider").value,
+    volcano_llm_model: $("#cfgVolcanoModel").value,
+    volcano_thinking: $("#cfgThinking").value,
+    llm_base_url: $("#cfgLLMBaseURL").value,
+    llm_model: $("#cfgLLMModel").value,
+  };
+  const key = $("#cfgVolcanoKey").value.trim();
+  if (key) body.volcano_api_key = key;
+  await postConfig(body);
+  $("#saveLLMMsg").textContent = "已保存";
+  setTimeout(() => $("#saveLLMMsg").textContent = "", 3000);
+};
+
+$("#saveVoice").onclick = async () => {
+  const body = {
+    asr_engine: $("#cfgASREngine").value,
+    apple_asr_locale: $("#cfgAppleLocale").value,
+    tts_engine: $("#cfgTTSEngine").value,
+    volcano_tts_speaker: $("#cfgTTSSpeaker").value,
+    tts_voice: $("#cfgTTSVoice").value,
+  };
+  const key = $("#cfgTTSKey").value.trim();
+  if (key) body.volcano_tts_api_key = key;
+  await postConfig(body);
+  $("#saveVoiceMsg").textContent = "已保存";
+  setTimeout(() => $("#saveVoiceMsg").textContent = "", 3000);
+};
+
+// ---- 会议控制（一键入会 + 桥接参数） ----
+async function loadBridgeCfg() {
+  try {
+    const d = await (await fetch(`${MONITOR_API}/agent_config`)).json();
+    $("#curMeeting").textContent = d.meeting_id || "未入会";
+    $("#joinMeetingId").value = d.meeting_id || "";
+    $("#cfgGain").value = d.downlink_gain ?? "";
+    $("#cfgChannel").value = d.pipeline_channel ?? 1;
+  } catch {}
+}
+$("#saveBridge").onclick = async () => {
+  const cur = await (await fetch(`${MONITOR_API}/agent_config`)).json().catch(()=>({}));
+  Object.assign(cur, {
+    downlink_gain: parseFloat($("#cfgGain").value) || 2.0,
+    pipeline_channel: parseInt($("#cfgChannel").value) || 1,
+  });
+  await fetch(`${MONITOR_API}/agent_config`, {
+    method: "PUT", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(cur, null, 2)
+  });
+  $("#saveBridgeMsg").textContent = "已保存";
+  setTimeout(() => $("#saveBridgeMsg").textContent = "", 3000);
+};
+$("#btnJoin").onclick = async () => {
+  const id = $("#joinMeetingId").value.replace(/\D/g, "");
+  if (id.length < 8) { $("#joinMsg").textContent = "请输入 9 位会议号"; return; }
+  $("#btnJoin").disabled = true;
+  $("#joinMsg").textContent = "正在自动入会（跳转或启动浏览器，最多约 15 秒）…";
+  try {
+    const d = await (await fetch(`${MONITOR_API}/api/join_meeting`, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({meeting_id: id})
+    })).json();
+    if (d.ok) {
+      $("#joinMsg").textContent = d.hint || ("已入会流程启动，正在进入会议 " + id);
+      $("#curMeeting").textContent = id;
+    } else {
+      $("#joinMsg").textContent = d.error || "入会失败";
+    }
+  } catch { $("#joinMsg").textContent = "监控服务不可达"; }
+  $("#btnJoin").disabled = false;
+  setTimeout(() => $("#joinMsg").textContent = "", 12000);
+};
+
+// ---- 人工控制 ----
+function sendControl(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(msg));
+    return true;
+  }
+  return false;
+}
+
+$("#btnInject").onclick = () => {
+  const text = $("#injectText").value.trim();
+  if (!text) { $("#injectMsg").textContent = "请输入文本"; return; }
+  if (sendControl({type: "inject.say", text})) {
+    $("#injectMsg").textContent = "已发送（智能体即将说话）";
+    $("#injectText").value = "";
+    addMsg("ctrl", "控制台", text, false, Date.now());
+  } else {
+    $("#injectMsg").textContent = "桥接未连接，无法发送";
+  }
+  setTimeout(() => $("#injectMsg").textContent = "", 3000);
+};
+
+$("#btnForce").onclick = () => {
+  if (sendControl({type: "agent.force"})) {
+    $("#injectMsg").textContent = "已举手（下一位说完后智能体接话）";
+  } else {
+    $("#injectMsg").textContent = "桥接未连接";
+  }
+  setTimeout(() => $("#injectMsg").textContent = "", 3000);
+};
+
+$("#btnStop").onclick = () => {
+  if (sendControl({type: "agent.stop"})) {
+    $("#stopMsg").textContent = "已发送紧急停止指令";
+    sysMsg("—— 紧急停止 ——");
+  } else {
+    $("#stopMsg").textContent = "桥接未连接";
+  }
+  setTimeout(() => $("#stopMsg").textContent = "", 3000);
+};
+
+// ---- 会议记录（按会议隔离，默认当前会议） ----
+async function loadMeetingList() {
+  try {
+    const d = await (await fetch(`${MONITOR_API}/api/transcript_meetings`)).json();
+    const list = $("#meetingList");
+    const items = d.meetings || [];
+    if (!items.length) { list.innerHTML = '<div class="empty">暂无会议记录</div>'; return; }
+    list.innerHTML = items.map(m => `
+      <div class="date-chip ${m.current ? "active" : ""}" data-mid="${m.meeting_id}" style="display:block;margin-bottom:6px;padding:8px 12px">
+        <div style="font-weight:600">${m.meeting_id || "?"} ${m.current ? '<span style="color:var(--green);font-size:11px">（当前）</span>' : ""}</div>
+        <div style="font-size:11px;opacity:.6">${m.date} · ${m.lines} 条 · ${(m.first||"").slice(11,16)}~${(m.last||"").slice(11,16)}</div>
+      </div>`).join("");
+    list.querySelectorAll(".date-chip").forEach(chip => {
+      chip.onclick = () => {
+        list.querySelectorAll(".date-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        loadMeetingRecords(chip.dataset.mid);
+      };
+    });
+    // 默认展示当前会议（没有则第一场）
+    const cur = list.querySelector(".date-chip.active") || list.querySelector(".date-chip");
+    if (cur) cur.click();
+  } catch {
+    $("#meetingList").innerHTML = '<div class="empty" style="color:var(--red)">加载失败</div>';
+  }
+}
+
+async function loadMeetingRecords(meetingId) {
+  $("#recordTitle").textContent = "会议 " + meetingId + " 的内容";
+  try {
+    const records = await (await fetch(`${MONITOR_API}/api/transcripts?meeting=${meetingId}`)).json();
+    const el = $("#recordStream");
+    if (!records.length) { el.innerHTML = '<div class="empty">该会议暂无记录</div>'; return; }
+    el.innerHTML = records.map(r => {
+      const cls = speakerClass(r.speaker);
+      const time = r.ts ? new Date(r.ts).toLocaleTimeString("zh-CN",{hour12:false}) : "";
+      return `<div class="msg ${cls}"><div class="who">${r.speaker||"?"}  ${time}</div><div class="what">${r.text||""}</div></div>`;
+    }).join("");
+  } catch {
+    $("#recordStream").innerHTML = '<div class="empty">加载失败</div>';
+  }
+}
+
+$("#refreshRecords").onclick = loadMeetingList;
+
+// ---- 知识库 ----
+async function loadKbStats() {
+  try {
+    const d = await (await fetch(`${PIPELINE_API.replace("/api","")}/api/status`)).json();
+    const kb = d.kb || {};
+    $("#kbStats").textContent = `${kb.chunks ?? 0} 个知识块`;
+  } catch { $("#kbStats").textContent = "无法获取"; }
+}
+$("#btnKbUpload").onclick = async () => {
+  const input = $("#kbFiles");
+  if (!input.files.length) { $("#kbUploadMsg").textContent = "请先选择文件"; return; }
+  $("#kbUploadMsg").textContent = "正在读取并上传…";
+  const files = [];
+  for (const f of input.files) {
+    if (f.size > 500 * 1024) { $("#kbUploadMsg").textContent = `${f.name} 超过 500KB，已跳过`; continue; }
+    const content = await f.text();
+    files.push({name: f.name, content});
+  }
+  if (!files.length) return;
+  try {
+    const d = await (await fetch(`${MONITOR_API}/api/kb_upload`, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({files})
+    })).json();
+    if (d.ok) {
+      $("#kbUploadMsg").textContent = `已导入 ${d.saved.length} 个文件（知识块 ${d.b_chunks ?? d.pipeline_chunks ?? "?"}）`;
+      input.value = "";
+      loadKbStats();
+    } else {
+      $("#kbUploadMsg").textContent = d.error || "导入失败";
+    }
+  } catch { $("#kbUploadMsg").textContent = "监控服务不可达"; }
+  setTimeout(() => $("#kbUploadMsg").textContent = "", 5000);
+};
+
+// ---- 待本人回答 ----
+const B_API = "http://127.0.0.1:8766";
+async function loadPending() {
+  try {
+    const d = await (await fetch(`${B_API}/pending_questions`)).json();
+    $("#pendingCount").textContent = d.count || 0;
+    const list = $("#pendingList");
+    if (!d.items || !d.items.length) {
+      list.innerHTML = '<div style="color:var(--dim)">需要本人解释或拍板的问题会记录在这里</div>';
+      return;
+    }
+    list.innerHTML = d.items.slice(0, 10).map(q =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="color:var(--orange);font-weight:600">${(q.ts||'').slice(11,19)} ${q.speaker||''}</div>
+        <div>${q.question||''}</div>
+      </div>`).join("");
+  } catch { /* B 未启动时静默 */ }
+}
+$("#clearPending").onclick = async () => {
+  await fetch(`${B_API}/pending_questions`, {method: "DELETE"});
+  loadPending();
+};
+
+// ---- 会议状态（进行中/已结束，由 run_agent 落盘；结束→监控自动停止提示） ----
+let lastMeetingState = "";
+async function loadMeetingStatus() {
+  let d;
+  try { d = await (await fetch(`${MONITOR_API}/api/meeting_status`)).json(); }
+  catch { return; }
+  const st = d.state || "unknown";
+  const badge = $("#meetingState");
+  if (st === "active") {
+    badge.style.display = "";
+    badge.textContent = "进行中";
+    badge.style.background = "rgba(45,212,160,.15)"; badge.style.color = "var(--green)";
+  } else if (st === "ended") {
+    badge.style.display = "";
+    badge.textContent = "已结束 " + (d.ts || "").slice(11, 16);
+    badge.style.background = "rgba(139,146,165,.15)"; badge.style.color = "var(--soft)";
+  } else {
+    badge.style.display = "none";
+  }
+  if (st === "ended" && lastMeetingState !== "ended") {
+    // 刚散场（2 分钟内）才提示，避免刷新页面被旧状态打扰
+    const endedAt = new Date((d.ts || "").replace(" ", "T")).getTime();
+    if (Date.now() - endedAt < 120000) {
+      sysMsg("会议已结束：实时监控已自动停止，会议记录已自动保存");
+      $("#agentIcon").textContent = "⏹";
+      $("#agentStateText").textContent = "会议已结束";
+      $("#agentDetail").textContent = "监控已停止 · 记录已保存";
+    }
+  }
+  lastMeetingState = st;
+}
+
+// ---- 初始化 ----
+loadPipelineCfg(); loadBridgeCfg(); loadMeetingList(); loadPending(); loadKbStats(); loadMeetingStatus();
+setInterval(loadPipelineCfg, 15000);
+setInterval(loadPending, 10000);
+setInterval(loadKbStats, 30000);
+setInterval(loadMeetingStatus, 5000);
+
+// ---- tab 切换 ----
+document.querySelectorAll(".tab").forEach(tab => tab.onclick = () => {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  ["monitor","records","control","config"].forEach(v => {
+    $(`#v-${v}`).classList.toggle("hidden", tab.dataset.v !== v);
+  });
+});
+</script>
+</body>
+</html>

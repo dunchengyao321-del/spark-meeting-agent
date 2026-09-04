@@ -1,0 +1,28 @@
+{
+  "storage": {
+    "workspace": "__PROJECT_ROOT__/ov_runtime/data",
+    "vectordb": {
+      "name": "context",
+      "backend": "local"
+    },
+    "agfs": {
+      "backend": "local"
+    }
+  },
+  "embedding": {
+    "dense": {
+      "api_base": "http://127.0.0.1:11434/v1",
+      "api_key": "ollama",
+      "provider": "openai",
+      "dimension": 1024,
+      "model": "bge-m3",
+      "input": "text"
+    }
+  },
+  "vlm": {
+    "api_base": "https://ark.cn-beijing.volces.com/api/v3",
+    "api_key": "在此填入你的火山引擎 ARK API Key",
+    "provider": "volcengine",
+    "model": "doubao-seed-2-1-pro-260628"
+  }
+}

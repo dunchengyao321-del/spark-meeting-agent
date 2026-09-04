@@ -1,0 +1,402 @@
+<!-- 飞书会议语音智能体 · 三智能体作战看板 | 交付截止 2026-09-08 -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>飞书会议智能体 · 作战看板</title>
+<style>
+  :root {
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --border: #eceef2;
+    --border-strong: #e2e5ea;
+    --text: #1a1d24;
+    --text-soft: #8a92a3;
+    --accent: #4b63ff;
+    --accent-soft: #eef1ff;
+    --danger: #f5455c;
+    --danger-soft: #fff0f2;
+    --radius: 14px;
+    --radius-sm: 9px;
+    --shadow: 0 1px 2px rgba(20, 24, 40, .04), 0 4px 16px rgba(20, 24, 40, .04);
+    --shadow-lift: 0 6px 24px rgba(20, 24, 40, .10);
+    --font: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 480px at 15% -10%, #eef1ff 0%, transparent 55%),
+      radial-gradient(1000px 420px at 100% 0%, #eafff6 0%, transparent 50%),
+      var(--bg);
+    color: var(--text); font-family: var(--font); font-size: 14px; padding: 32px 28px; min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1440px; margin: 0 auto; }
+
+  .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .page-head .logo { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, var(--accent), #7a5af5); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px; box-shadow: 0 6px 16px rgba(75, 99, 255, .35); }
+  .page-head h1 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+  .page-head p { color: var(--text-soft); font-size: 13px; margin-top: 2px; }
+
+  .tabs { display: inline-flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 22px; box-shadow: var(--shadow); }
+  .tab { padding: 8px 18px; cursor: pointer; color: var(--text-soft); font-weight: 500; border-radius: 9px; transition: all .18s ease; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); background: var(--accent-soft); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 18px 12px 20px; box-shadow: var(--shadow); overflow: hidden; transition: transform .18s ease, box-shadow .18s ease; }
+  .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .stat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: .85; }
+  .stat:nth-child(2)::before { background: #0fbf8f; }
+  .stat:nth-child(3)::before { background: #f7a234; }
+  .stat:nth-child(4)::before { background: #7a5af5; }
+  .stat .label { color: var(--text-soft); font-size: 12px; margin-bottom: 4px; }
+  .stat .value { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 14px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(75, 99, 255, .28); transition: transform .12s ease, box-shadow .18s ease, filter .18s ease; }
+  .btn:hover { filter: brightness(1.05); box-shadow: 0 6px 18px rgba(75, 99, 255, .36); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: var(--surface); color: var(--text-soft); border: 1px solid var(--border-strong); box-shadow: none; font-weight: 500; }
+  .btn.ghost:hover { color: var(--text); filter: none; }
+  .spacer { flex: 1; }
+  .search-box { position: relative; }
+  .search-box svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-soft); pointer-events: none; }
+  .search-box input { padding-left: 32px; }
+  input, select { font-family: var(--font); font-size: 14px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px 11px; background: var(--surface); color: var(--text); outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  thead th { background: #fafbfd; color: var(--text-soft); font-weight: 600; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--accent-soft); }
+  td.name { font-weight: 600; cursor: pointer; white-space: normal; min-width: 260px; }
+  td.name:hover { color: var(--accent); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
+  .col-actions { width: 56px; text-align: center; }
+  .icon-btn { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; color: var(--text-soft); cursor: pointer; opacity: 0; transition: all .15s ease; }
+  tbody tr:hover .icon-btn { opacity: 1; }
+  .icon-btn:hover { background: var(--danger-soft); color: var(--danger); }
+
+  .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 1fr); gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+  .col { background: rgba(255,255,255,.7); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; backdrop-filter: blur(4px); }
+  .col h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .col h3 .count { color: var(--text-soft); font-weight: 500; background: var(--bg); border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+  .col-body { min-height: 40px; display: flex; flex-direction: column; gap: 10px; }
+  .ticket { position: relative; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 14px; cursor: grab; background: var(--surface); box-shadow: var(--shadow); transition: transform .12s ease, box-shadow .18s ease; }
+  .ticket:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .ticket.dragging { opacity: .4; }
+  .ticket .t-name { font-weight: 600; margin-bottom: 10px; padding-right: 22px; }
+  .ticket .t-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; color: var(--text-soft); font-size: 12px; }
+  .ticket .t-del { position: absolute; top: 8px; right: 8px; }
+  .ticket:hover .t-del { opacity: 1; }
+  .col.drop-hover { outline: 2px dashed var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+
+  .hidden { display: none; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(20, 24, 40, .34); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; animation: fade .16s ease; }
+  @keyframes fade { from { opacity: 0; } }
+  .modal { background: var(--surface); border-radius: 18px; padding: 26px; width: 440px; max-width: 90vw; box-shadow: 0 24px 60px rgba(20, 24, 40, .28); animation: pop .18s cubic-bezier(.2,.8,.3,1); }
+  @keyframes pop { from { transform: translateY(8px) scale(.98); opacity: 0; } }
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .modal .sub { color: var(--text-soft); font-size: 13px; margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; color: var(--text-soft); font-size: 13px; margin-bottom: 6px; }
+  .field input, .field select { width: 100%; }
+  .modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 22px; }
+  .btn.danger { background: var(--danger); box-shadow: 0 4px 12px rgba(245, 69, 92, .28); }
+  .link-danger { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 14px; font-weight: 500; padding: 8px 10px; border-radius: 8px; }
+  .link-danger:hover { background: var(--danger-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div class="logo">飞</div>
+    <div>
+      <h1>飞书会议智能体 · 三智能体作战看板</h1>
+      <p>产品总设计 / 研发工程师 / 测试人员 · 交付截止 2026-09-08 · 数据存于本地浏览器</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="table">任务列表</div>
+    <div class="tab" data-view="board">看板视图</div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <select id="filter-status"><option value="">全部状态</option></select>
+    <select id="filter-priority"><option value="">全部优先级</option></select>
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      <input id="search" placeholder="搜索任务名称…" />
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="btn-new">+ 新建任务</button>
+  </div>
+
+  <div class="card" id="view-table">
+    <table>
+      <thead><tr id="thead-row"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="board hidden" id="view-board"></div>
+</div>
+
+<script>
+const CONFIG = {
+  storageKey: "xinghuo-feishu-agent-v7",
+
+  statuses: [
+    { key: "todo",   label: "待开始", color: "#eef0f5", text: "#86909c" },
+    { key: "doing",  label: "进行中", color: "#fff7e6", text: "#f7a234" },
+    { key: "verify", label: "联调中", color: "#eef1ff", text: "#4b63ff" },
+    { key: "done",   label: "已完成", color: "#eafaef", text: "#3bb066" },
+  ],
+
+  priorities: [
+    { key: "P0", color: "#fde2e2", text: "#f53f3f" },
+    { key: "P1", color: "#fff1e0", text: "#f77234" },
+    { key: "P2", color: "#f0eafe", text: "#7a5af5" },
+  ],
+
+  columns: [
+    { key: "tid",      label: "编号" },
+    { key: "name",     label: "任务" },
+    { key: "status",   label: "状态",   type: "status" },
+    { key: "owner",    label: "负责智能体" },
+    { key: "priority", label: "优先级", type: "priority" },
+    { key: "line",     label: "里程碑" },
+    { key: "path",     label: "关键路径" },
+  ],
+
+  seed: [
+    { id: 1,  tid: "D1",  name: "PRD 与项目主计划（含风险登记册、降级预案）", status: "done",  owner: "产品总设计", priority: "P0", line: "8/31", path: "" },
+    { id: 2,  tid: "D2",  name: "测试计划 / 用例库（14 条）/ 验收清单", status: "done",  owner: "测试人员", priority: "P0", line: "8/31", path: "" },
+    { id: 3,  tid: "T01", name: "方案 C 技术方案冻结（页面层注入架构书面确认）", status: "done",  owner: "产品总设计", priority: "P0", line: "8/31", path: "★" },
+    { id: 4,  tid: "T02", name: "Chrome 假设备上行注入验证（wav 在飞书会议中可被听到）", status: "done",  owner: "研发工程师", priority: "P0", line: "8/31", path: "★" },
+    { id: 5,  tid: "T03", name: "shim.js：拦截 getUserMedia / enumerateDevices 返回合成麦克风轨（回环已验证）", status: "done", owner: "研发工程师", priority: "P0", line: "9/1", path: "★" },
+    { id: 6,  tid: "T04", name: "shim.js：包装 RTCPeerConnection 捕获远端音频轨（PC 环回已验证，含拉流修复）", status: "done", owner: "研发工程师", priority: "P0", line: "9/1", path: "★" },
+    { id: 7,  tid: "T05", name: "最小回环联调：页面采集 → WebSocket → 后端 → 回传播放（已 PASS）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/1", path: "★" },
+    { id: 8,  tid: "T06", name: "页面 ↔ 后端 WebSocket 双向 PCM 桥（双向均已验证）", status: "done", owner: "研发工程师", priority: "P0", line: "9/2", path: "★" },
+    { id: 9,  tid: "T07", name: "下行采集链路定稿（Python 端实测 RMS=0.35 收到音频）", status: "done", owner: "研发工程师", priority: "P0", line: "9/2", path: "★" },
+    { id: 10, tid: "T08", name: "启动脚本骨架：Playwright 拉起 Chrome + 注入 shim（冒烟通过）", status: "done", owner: "研发工程师", priority: "P0", line: "9/2", path: "" },
+    { id: 11, tid: "T09", name: "真实飞书会议双人联调（上行✓ 下行✓ 无自听✓，见联调记录-T09）", status: "done",  owner: "研发工程师·测试人员", priority: "P0", line: "9/3", path: "★" },
+    { id: 12, tid: "T10", name: "联调问题修复（PNA 拦截、多标签探测、轨 stop 重建等 7 项，当日闭环）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/4", path: "★" },
+    { id: 13, tid: "T11", name: "后端 ASR → LLM → TTS 全链路对接（复用星火 /ws/meeting 管线）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/4", path: "★" },
+    { id: 14, tid: "T12", name: "智能体全链路真实会议联调（听说闭环，首轮 880ms，见联调记录-T11-T12）", status: "done",  owner: "研发工程师·测试人员", priority: "P0", line: "9/4", path: "★" },
+    { id: 15, tid: "T13", name: "P1 打断与双讲（clear_audio 三连清空 + 停止指令词，已实测）", status: "done",  owner: "研发工程师", priority: "P1", line: "9/5-9/6", path: "" },
+    { id: 16, tid: "T14", name: "P1 静音控制（'别说了/停下' 文字语音双通道指令，已部署）", status: "done",  owner: "研发工程师", priority: "P1", line: "9/5-9/6", path: "" },
+    { id: 17, tid: "T15", name: "缓冲（提前 4 天完成核心链路，未启用）", status: "done",  owner: "全体", priority: "P1", line: "9/5-9/6", path: "" },
+    { id: 18, tid: "T16", name: "一键启动脚本 start_agent.sh（依赖自检+桥接拉起+中文提示）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/7", path: "" },
+    { id: 19, tid: "T17", name: "配置模板 config.example.json（全字段注释）", status: "done",  owner: "研发工程师", priority: "P1", line: "9/7", path: "" },
+    { id: 20, tid: "T18", name: "使用说明文档（面向非研发同事）", status: "done",  owner: "产品总设计", priority: "P1", line: "9/7", path: "" },
+    { id: 24, tid: "F1",  name: "扩展：会议聊天双向（采集+语音答+文字回帖+防自答循环）", status: "done",  owner: "研发工程师", priority: "P0", line: "8/31", path: "" },
+    { id: 25, tid: "F2",  name: "扩展：投屏视觉识别（截帧+视觉模型问答）", status: "done",  owner: "研发工程师", priority: "P0", line: "8/31", path: "" },
+    { id: 26, tid: "F3",  name: "扩展：CDP 热注入通道（hot_inject.py，零重启迭代）", status: "done",  owner: "研发工程师", priority: "P0", line: "8/31", path: "" },
+    { id: 27, tid: "F4",  name: "扩展：控制台合并（8765 设置智能体 + 会议监控模块，8877 退役）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/1", path: "" },
+    { id: 28, tid: "F5",  name: "扩展：独立知识库 + spark-code-kb MCP（kb/code/file 三工具实测通过）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/1", path: "" },
+    { id: 29, tid: "F6",  name: "扩展：唤醒词门控（只听不说+实时记录，喊星火才答）", status: "done",  owner: "研发工程师", priority: "P0", line: "9/1", path: "" },
+    { id: 30, tid: "F7",  name: "扩展：会议记录实时落盘 transcripts JSONL", status: "done",  owner: "研发工程师", priority: "P1", line: "9/1", path: "" },
+    { id: 21, tid: "T19", name: "验收测试 A1–A5（延迟<2s、无自听、30 分钟稳定、他人独立跑通、P0 齐备）", status: "todo",  owner: "测试人员", priority: "P0", line: "9/7", path: "★" },
+    { id: 22, tid: "T20", name: "交付目录打包（交付清单.md + .gitignore + 验证工具齐备）", status: "done",  owner: "研发工程师", priority: "P1", line: "9/7", path: "" },
+    { id: 23, tid: "T21", name: "验收遗留问题修复与正式交付、非研发同事试用确认", status: "todo",  owner: "产品总设计·研发工程师", priority: "P0", line: "9/8", path: "★" },
+  ],
+
+  stats: [
+    { label: "总任务",   calc: items => items.length },
+    { label: "已完成",   calc: items => items.filter(i => i.status === "done").length },
+    { label: "进行中",   calc: items => items.filter(i => i.status === "doing" || i.status === "verify").length },
+    { label: "距交付",   calc: () => Math.max(0, Math.ceil((new Date("2026-09-08T23:59:59") - Date.now()) / 86400000)) + " 天" },
+  ],
+};
+
+/* ============ 引擎部分（无需修改） ============ */
+const store = {
+  load() {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    if (raw) { try { return JSON.parse(raw); } catch (e) {} }
+    return structuredClone(CONFIG.seed);
+  },
+  save(items) { localStorage.setItem(CONFIG.storageKey, JSON.stringify(items)); },
+};
+
+let items = store.load();
+let currentView = "table";
+
+const $ = sel => document.querySelector(sel);
+const statusOf = k => CONFIG.statuses.find(s => s.key === k) || { label: k, color: "#eee", text: "#333" };
+const prioOf = k => CONFIG.priorities.find(p => p.key === k) || { key: k, color: "#eee", text: "#333" };
+
+function filtered() {
+  const s = $("#filter-status").value, p = $("#filter-priority").value, q = $("#search").value.trim().toLowerCase();
+  return items.filter(i =>
+    (!s || i.status === s) && (!p || i.priority === p) && (!q || (i.name || "").toLowerCase().includes(q))
+  );
+}
+
+function renderStats() {
+  $("#stats").innerHTML = CONFIG.stats.map(s =>
+    `<div class="stat"><div class="label">${s.label}</div><div class="value">${s.calc(items)}</div></div>`
+  ).join("");
+}
+
+function cell(item, col) {
+  const v = item[col.key] ?? "";
+  if (col.type === "status") { const s = statusOf(v); return `<span class="badge" style="background:${s.color};color:${s.text}"><span class="dot"></span>${s.label}</span>`; }
+  if (col.type === "priority") { const p = prioOf(v); return `<span class="badge" style="background:${p.color};color:${p.text}">${p.key}</span>`; }
+  return v;
+}
+
+const TRASH_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><line x1="10" y1="10" x2="10" y2="17"/><line x1="14" y1="10" x2="14" y2="17"/></svg>`;
+
+function renderTable() {
+  $("#thead-row").innerHTML = CONFIG.columns.map(c => `<th>${c.label}</th>`).join("") + `<th class="col-actions">操作</th>`;
+  $("#tbody").innerHTML = filtered().map(item =>
+    `<tr data-id="${item.id}">` +
+    CONFIG.columns.map(c => `<td class="${c.key === "name" ? "name" : ""}">${cell(item, c)}</td>`).join("") +
+    `<td class="col-actions"><button class="icon-btn js-del" title="删除">${TRASH_SVG}</button></td>` +
+    `</tr>`
+  ).join("");
+  $("#tbody").querySelectorAll("td.name").forEach(td =>
+    td.onclick = () => openModal(items.find(i => i.id == td.parentElement.dataset.id)));
+  $("#tbody").querySelectorAll(".js-del").forEach(btn =>
+    btn.onclick = e => { e.stopPropagation(); confirmDelete(items.find(i => i.id == btn.closest("tr").dataset.id)); });
+}
+
+function renderBoard() {
+  const data = filtered();
+  $("#view-board").innerHTML = CONFIG.statuses.map(s => {
+    const list = data.filter(i => i.status === s.key);
+    return `<div class="col" data-status="${s.key}">
+      <h3>${s.label}<span class="count">${list.length}</span></h3>
+      <div class="col-body">${list.map(ticketHTML).join("")}</div>
+    </div>`;
+  }).join("");
+  wireDnD();
+}
+
+function ticketHTML(item) {
+  const p = prioOf(item.priority);
+  return `<div class="ticket" draggable="true" data-id="${item.id}">
+    <button class="icon-btn js-del t-del" title="删除">${TRASH_SVG}</button>
+    <div class="t-name">${item.tid ? item.tid + " · " : ""}${item.name}</div>
+    <div class="t-meta">
+      <span class="badge" style="background:${p.color};color:${p.text}">${p.key}</span>
+      <span>${item.owner || "暂无"}</span>
+      <span>${item.line || ""}</span>
+    </div></div>`;
+}
+
+function wireDnD() {
+  let dragId = null;
+  $("#view-board").querySelectorAll(".ticket").forEach(t => {
+    t.ondragstart = () => { dragId = t.dataset.id; t.classList.add("dragging"); };
+    t.ondragend = () => t.classList.remove("dragging");
+    t.onclick = () => openModal(items.find(i => i.id == t.dataset.id));
+  });
+  $("#view-board").querySelectorAll(".js-del").forEach(btn =>
+    btn.onclick = e => { e.stopPropagation(); confirmDelete(items.find(i => i.id == btn.closest(".ticket").dataset.id)); });
+  $("#view-board").querySelectorAll(".col").forEach(col => {
+    col.ondragover = e => { e.preventDefault(); col.classList.add("drop-hover"); };
+    col.ondragleave = () => col.classList.remove("drop-hover");
+    col.ondrop = () => {
+      col.classList.remove("drop-hover");
+      const item = items.find(i => i.id == dragId);
+      if (item) { item.status = col.dataset.status; persist(); }
+    };
+  });
+}
+
+function render() {
+  renderStats();
+  $("#view-table").classList.toggle("hidden", currentView !== "table");
+  $("#view-board").classList.toggle("hidden", currentView !== "board");
+  currentView === "table" ? renderTable() : renderBoard();
+}
+function persist() { store.save(items); render(); }
+
+function openModal(item) {
+  const editing = !!item;
+  const d = item || { id: Date.now(), tid: "", name: "", status: CONFIG.statuses[0].key, owner: "", priority: CONFIG.priorities.at(-1).key, line: "", path: "" };
+  const opts = (arr, sel, lab = x => x.label || x.key, val = x => x.key) =>
+    arr.map(x => `<option value="${val(x)}" ${val(x) === sel ? "selected" : ""}>${lab(x)}</option>`).join("");
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="modal">
+    <h2>${editing ? "编辑任务" : "新建任务"}</h2>
+    <div class="sub">${editing ? "修改后点击保存生效" : "填写信息创建一条新任务"}</div>
+    <div class="field"><label>任务名称</label><input id="m-name" value="${d.name}" placeholder="输入任务名称" /></div>
+    <div class="field"><label>负责智能体</label><input id="m-owner" value="${d.owner}" placeholder="产品总设计 / 研发工程师 / 测试人员" /></div>
+    <div class="field"><label>里程碑日期</label><input id="m-line" value="${d.line || ""}" placeholder="如 9/3" /></div>
+    <div class="field"><label>状态</label><select id="m-status">${opts(CONFIG.statuses, d.status)}</select></div>
+    <div class="field"><label>优先级</label><select id="m-priority">${opts(CONFIG.priorities, d.priority)}</select></div>
+    <div class="modal-actions">
+      ${editing ? '<button class="link-danger" id="m-del">删除</button>' : ""}
+      <div class="spacer"></div>
+      <button class="btn ghost" id="m-cancel">取消</button>
+      <button class="btn" id="m-save">保存</button>
+    </div></div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  overlay.querySelector("#m-cancel").onclick = close;
+  overlay.querySelector("#m-save").onclick = () => {
+    d.name = overlay.querySelector("#m-name").value.trim() || "未命名";
+    d.owner = overlay.querySelector("#m-owner").value.trim();
+    d.line = overlay.querySelector("#m-line").value.trim();
+    d.status = overlay.querySelector("#m-status").value;
+    d.priority = overlay.querySelector("#m-priority").value;
+    if (!editing) items.unshift(d);
+    persist(); close();
+  };
+  if (editing) overlay.querySelector("#m-del").onclick = () => { close(); confirmDelete(d); };
+}
+
+function confirmDelete(item) {
+  if (!item) return;
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="modal" style="width:380px">
+    <h2>删除任务</h2>
+    <div class="sub">确定删除「${item.name}」？此操作不可撤销。</div>
+    <div class="modal-actions">
+      <div class="spacer"></div>
+      <button class="btn ghost" id="c-cancel">取消</button>
+      <button class="btn danger" id="c-ok">删除</button>
+    </div></div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  overlay.querySelector("#c-cancel").onclick = close;
+  overlay.querySelector("#c-ok").onclick = () => { items = items.filter(i => i.id !== item.id); persist(); close(); };
+}
+
+function initFilters() {
+  $("#filter-status").insertAdjacentHTML("beforeend", CONFIG.statuses.map(s => `<option value="${s.key}">${s.label}</option>`).join(""));
+  $("#filter-priority").insertAdjacentHTML("beforeend", CONFIG.priorities.map(p => `<option value="${p.key}">${p.key}</option>`).join(""));
+}
+document.querySelectorAll(".tab").forEach(tab =>
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentView = tab.dataset.view;
+    render();
+  });
+["#filter-status", "#filter-priority", "#search"].forEach(sel => $(sel).oninput = render);
+$("#btn-new").onclick = () => openModal(null);
+
+initFilters();
+render();
+</script>
+</body>
+</html>

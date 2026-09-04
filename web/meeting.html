@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>星火会议智能体 · 监控台</title>
+<style>
+  :root { --bg:#f4f5f8; --surface:#fff; --border:#e7e9ef; --text:#1a1d24; --soft:#8a92a3;
+          --accent:#4b63ff; --green:#0fbf8f; --purple:#7a5af5; --blue:#2f9bff; --orange:#f77234; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:14px/1.55 -apple-system,"PingFang SC",sans-serif; padding:20px; }
+  .wrap { max-width:1200px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  header h1 { font-size:18px; }
+  .pill { padding:3px 12px; border-radius:999px; font-size:12px; font-weight:600; background:#eceef3; color:var(--soft); }
+  .pill.on { background:#e4f9f1; color:var(--green); }
+  .pill.speaking { background:#e4f9f1; color:var(--green); }
+  .pill.thinking { background:#fff4e5; color:var(--orange); }
+  .tabs { display:inline-flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; margin-bottom:16px; }
+  .tab { padding:6px 16px; border-radius:7px; cursor:pointer; color:var(--soft); font-weight:500; }
+  .tab.active { color:var(--accent); background:#eef1ff; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .cols { display:grid; grid-template-columns: 1fr 320px; gap:14px; }
+  #stream { height:62vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .msg { padding:8px 12px; border-radius:10px; background:#f6f7fa; }
+  .msg .who { font-size:12px; font-weight:600; margin-bottom:2px; }
+  .msg.partial { opacity:.55; font-style:italic; }
+  .msg.agent { background:#e4f9f1; } .msg.agent .who { color:var(--green); }
+  .msg.me { background:#e6f3ff; } .msg.me .who { color:var(--blue); }
+  .msg.chat { background:#f1eafe; } .msg.chat .who { color:var(--purple); }
+  .msg.sys { background:transparent; color:var(--soft); text-align:center; font-size:12px; padding:2px; }
+  #screenShot { width:100%; border-radius:8px; border:1px solid var(--border); display:block; }
+  .muted { color:var(--soft); font-size:12px; }
+  label { display:block; font-size:13px; color:var(--soft); margin:12px 0 5px; }
+  input[type=text], textarea { width:100%; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:inherit; background:#fff; }
+  textarea { min-height:90px; resize:vertical; }
+  .row { display:flex; gap:18px; align-items:center; }
+  .btn { background:var(--accent); color:#fff; border:none; border-radius:9px; padding:8px 20px; font-weight:600; cursor:pointer; margin-top:14px; }
+  .btn.ghost { background:#fff; color:var(--soft); border:1px solid var(--border); }
+  .kv { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--border); font-size:13px; }
+  .kv:last-child { border-bottom:none; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>星火会议智能体 · 监控台</h1>
+    <span id="conn" class="pill">未连接</span>
+    <span id="agentState" class="pill">智能体：-</span>
+  </header>
+  <div class="tabs">
+    <div class="tab active" data-v="talk">实时对话</div>
+    <div class="tab" data-v="config">配置</div>
+  </div>
+
+  <div id="v-talk">
+    <div class="cols">
+      <div class="card"><div id="stream"><div class="msg sys">等待会议事件…</div></div></div>
+      <div>
+        <div class="card">
+          <div class="muted" style="margin-bottom:8px">投屏画面（最新帧）</div>
+          <img id="screenShot" alt="暂无投屏帧" style="background:#f0f1f5;min-height:120px">
+          <div id="screenMeta" class="muted" style="margin-top:6px">尚未收到投屏</div>
+        </div>
+        <div class="card">
+          <div class="muted" style="margin-bottom:8px">链路状态</div>
+          <div class="kv"><span>桥接 (8876)</span><b id="stBridge">-</b></div>
+          <div class="kv"><span>管线 (8765)</span><b id="stPipeline">-</b></div>
+          <div class="kv"><span>聊天消息</span><b id="stChat">0</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="v-config" class="hidden">
+    <div class="card">
+      <b>唤醒与行为（星火管线，保存后数秒内生效）</b>
+      <label>唤醒词（逗号分隔）</label>
+      <input type="text" id="cfgWakeNames">
+      <div class="row">
+        <label style="margin:12px 0 0"><input type="checkbox" id="cfgWakeRequired"> 必须喊唤醒词才回答</label>
+        <label style="margin:12px 0 0"><input type="checkbox" id="cfgAnswerQ"> 无人接话的直接问句也回答</label>
+      </div>
+      <label>人设（persona）</label>
+      <textarea id="cfgPersona"></textarea>
+      <button class="btn" id="savePipeline">保存唤醒配置</button>
+      <span id="savePipelineMsg" class="muted" style="margin-left:10px"></span>
+    </div>
+    <div class="card">
+      <b>桥接配置（重启 start_agent.sh 后生效）</b>
+      <label>会议号</label><input type="text" id="cfgMeeting">
+      <label>下行增益</label><input type="text" id="cfgGain">
+      <label>管线声道（0=主人免唤醒 1=会议仲裁）</label><input type="text" id="cfgChannel">
+      <button class="btn ghost" id="saveBridge">保存桥接配置</button>
+      <span id="saveBridgeMsg" class="muted" style="margin-left:10px"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const stream = $("#stream");
+let firstEvent = true;
+
+function addMsg(cls, who, text, partial) {
+  if (firstEvent) { stream.innerHTML = ""; firstEvent = false; }
+  const d = document.createElement("div");
+  d.className = "msg " + cls + (partial ? " partial" : "");
+  d.innerHTML = `<div class="who"></div><div class="what"></div>`;
+  d.querySelector(".who").textContent = who;
+  d.querySelector(".what").textContent = text;
+  stream.appendChild(d);
+  stream.scrollTop = stream.scrollHeight;
+}
+function sysMsg(text) { addMsg("sys", "", text); }
+
+function speakerClass(sp) {
+  if (sp === "agent") return "agent";
+  if (sp === "我") return "me";
+  if ((sp || "").includes("聊天")) return "chat";
+  return "";
+}
+
+function connect() {
+  const ws = new WebSocket("ws://127.0.0.1:8876/monitor");
+  ws.onopen = () => { $("#conn").textContent = "已连接"; $("#conn").className = "pill on"; $("#stBridge").textContent = "在线"; };
+  ws.onclose = () => { $("#conn").textContent = "重连中…"; $("#conn").className = "pill"; setTimeout(connect, 3000); };
+  ws.onmessage = (e) => {
+    let ev; try { ev = JSON.parse(e.data); } catch { return; }
+    const t = ev.type || "";
+    if (t === "transcript.final" || t === "transcript.partial") {
+      addMsg(speakerClass(ev.speaker), ev.speaker || "?", ev.text || "", t === "transcript.partial");
+      if (t === "transcript.final" && (ev.speaker||"").includes("聊天"))
+        $("#stChat").textContent = (+$("#stChat").textContent) + 1;
+    } else if (t === "agent.state") {
+      const el = $("#agentState");
+      el.textContent = "智能体：" + (ev.state || "-") + (ev.reason ? `（${ev.reason}）` : "");
+      el.className = "pill " + (ev.state === "speaking" ? "speaking" : ev.state === "thinking" ? "thinking" : "");
+    } else if (t === "clear_audio") {
+      sysMsg("—— 智能体被打断 ——");
+    } else if (t === "screen.frame" && ev.image_b64) {
+      $("#screenShot").src = "data:image/jpeg;base64," + ev.image_b64;
+      $("#screenMeta").textContent = "更新于 " + new Date().toLocaleTimeString();
+    } else if (t === "session.error") {
+      sysMsg("⚠ " + (ev.error || ""));
+    }
+  };
+}
+connect();
+
+// ---- 配置页 ----
+async function loadPipelineCfg() {
+  try {
+    const d = await (await fetch("http://127.0.0.1:8765/api/config")).json();
+    $("#cfgWakeNames").value = (d.meeting_wake_names || []).join("，");
+    $("#cfgWakeRequired").checked = !!d.meeting_wake_required;
+    $("#cfgAnswerQ").checked = !!d.meeting_answer_questions;
+    $("#cfgPersona").value = d.persona || "";
+    $("#stPipeline").textContent = "在线";
+  } catch { $("#stPipeline").textContent = "离线"; }
+}
+$("#savePipeline").onclick = async () => {
+  const body = {
+    meeting_wake_names: $("#cfgWakeNames").value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+    meeting_wake_required: $("#cfgWakeRequired").checked,
+    meeting_answer_questions: $("#cfgAnswerQ").checked,
+    persona: $("#cfgPersona").value,
+  };
+  await fetch("http://127.0.0.1:8765/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  $("#savePipelineMsg").textContent = "已保存（新会话/数秒后生效）";
+};
+async function loadBridgeCfg() {
+  try {
+    const d = await (await fetch("/api/agent_config")).json();
+    $("#cfgMeeting").value = d.meeting_id || "";
+    $("#cfgGain").value = d.downlink_gain ?? "";
+    $("#cfgChannel").value = d.pipeline_channel ?? "";
+  } catch {}
+}
+$("#saveBridge").onclick = async () => {
+  const cur = await (await fetch("/api/agent_config")).json().catch(() => ({}));
+  Object.assign(cur, {
+    meeting_id: $("#cfgMeeting").value.trim(),
+    downlink_gain: parseFloat($("#cfgGain").value) || 5.0,
+    pipeline_channel: parseInt($("#cfgChannel").value) || 0,
+  });
+  await fetch("/api/agent_config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cur, null, 2) });
+  $("#saveBridgeMsg").textContent = "已保存（重启 start_agent.sh 后生效）";
+};
+loadPipelineCfg(); loadBridgeCfg();
+setInterval(loadPipelineCfg, 15000);
+
+// ---- tab 切换 ----
+document.querySelectorAll(".tab").forEach(tab => tab.onclick = () => {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  $("#v-talk").classList.toggle("hidden", tab.dataset.v !== "talk");
+  $("#v-config").classList.toggle("hidden", tab.dataset.v !== "config");
+});
+</script>
+</body>
+</html>

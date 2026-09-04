@@ -1,0 +1,39 @@
+config.json
+.tokens.json
+style_profile.json
+realtime_api_key.txt
+*.wav
+*.aiff
+voice_samples/
+local_voice_agent.log
+__pycache__/
+*.log
+lark_auth_qr.png
+build/
+dist/
+*.spec
+.venv/
+.kb_index.json
+docs/kb/
+server/__pycache__/
+
+# compiled local ASR binary (built from tools/apple_asr.swift)
+tools/apple_asr
+
+# ---- OpenViking 运行时（含密钥的配置、虚拟环境、向量数据、日志） ----
+ov_runtime/venv/
+ov_runtime/data/
+ov_runtime/*.log
+ov_runtime/ov.conf
+.ov-poc/
+
+# ---- 会议运行数据（隐私） ----
+02-研发实现/transcripts/
+02-研发实现/latest_screen.jpg
+02-研发实现/meeting_status.json
+meeting_status.json
+transcripts/
+external_transcripts/
+
+# ---- 知识库内容（数据而非代码） ----
+kb/

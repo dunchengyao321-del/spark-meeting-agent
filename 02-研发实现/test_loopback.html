@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>语音智能体 · 注入链路回环测试</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 20px; }
+  .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  button { font-size: 15px; padding: 8px 20px; cursor: pointer; }
+  /* 电平表：外层轨道 + 内层填充条 */
+  .meter { height: 18px; background: #eee; border-radius: 9px; overflow: hidden; margin-top: 8px; }
+  .meter > div { height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #ff9800, #f44336); transition: width 60ms linear; }
+  pre { background: #f6f8fa; padding: 12px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  .warn { color: #b26a00; font-size: 13px; }
+  .ok { color: #2e7d32; }
+</style>
+</head>
+<body>
+<h1>语音智能体 · 注入链路回环测试页</h1>
+<p>
+  用途：在不进入真实会议的情况下，验证 shim.js 的注入链路是否工作。<br>
+  <b>两种用法：</b><br>
+  1. 直接双击打开本文件 —— 测<b>真实麦克风</b>回环（未注入 shim 的对照组）；<br>
+  2. 通过 Playwright 以 add_init_script(shim.js) 方式打开 —— getUserMedia 会拿到<b>合成麦克风轨</b>，
+     配合 <code>bridge_server.py --tone-test</code> 可听到每 5 秒一声的 440Hz 提示音，验证上行链路。
+</p>
+
+<div class="card">
+  <button id="startBtn">开始测试（getUserMedia）</button>
+  <label style="margin-left:12px;font-size:13px;">
+    <input type="checkbox" id="playbackChk" checked> 本地扬声器回放（自听，建议戴耳机防啸叫）
+  </label>
+  <div class="meter"><div id="meterFill"></div></div>
+  <p class="warn" id="statusLine">尚未开始</p>
+</div>
+
+<div class="card">
+  <b>设备列表（enumerateDevices）</b>
+  <pre id="devicesOut">（开始后自动填充）</pre>
+</div>
+
+<div class="card">
+  <b>音频轨信息（label / settings）</b>
+  <pre id="trackOut">（开始后自动填充）</pre>
+</div>
+
+<div class="card">
+  <b>window.__agentShim 探针（仅注入 shim.js 时存在，每秒刷新）</b>
+  <pre id="shimOut">未检测到 __agentShim（未注入 shim.js 时属正常）</pre>
+</div>
+
+<script>
+'use strict';
+
+// ---------------- 回环测试主逻辑 ----------------
+const startBtn = document.getElementById('startBtn');
+const playbackChk = document.getElementById('playbackChk');
+const meterFill = document.getElementById('meterFill');
+const statusLine = document.getElementById('statusLine');
+const devicesOut = document.getElementById('devicesOut');
+const trackOut = document.getElementById('trackOut');
+const shimOut = document.getElementById('shimOut');
+
+startBtn.addEventListener('click', async () => {
+  startBtn.disabled = true;
+  try {
+    // 1) 申请麦克风。若 shim.js 已注入，这里会返回"合成麦克风轨"
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        // 故意指定一个设备，验证 shim 是否"无论什么 deviceId 都返回合成轨"
+        deviceId: { ideal: 'agent-mic-01' },
+      },
+    });
+
+    // 2) 展示设备列表与轨信息
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    devicesOut.textContent = JSON.stringify(
+      devices.map(d => ({ kind: d.kind, deviceId: d.deviceId, label: d.label })), null, 2);
+    const track = stream.getAudioTracks()[0];
+    trackOut.textContent = JSON.stringify({
+      label: track.label, kind: track.kind,
+      settings: track.getSettings ? track.getSettings() : null,
+    }, null, 2);
+
+    // 3) 回环：源 -> 分析器（电平）->（可选）扬声器
+    const ctx = new AudioContext({ sampleRate: 48000 });
+    await ctx.resume();
+    const src = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    src.connect(analyser);
+    const gain = ctx.createGain();
+    analyser.connect(gain);
+    playbackChk.addEventListener('change', () => {
+      // 动态接/断扬声器，避免不勾时还出声
+      try { gain.disconnect(); } catch (e) {}
+      if (playbackChk.checked) gain.connect(ctx.destination);
+    });
+    if (playbackChk.checked) gain.connect(ctx.destination);
+
+    statusLine.textContent = '运行中：轨 label = ' + track.label +
+      '（若显示 Microphone (HD Audio Device) 之类虚拟名，说明 shim 已生效）';
+    statusLine.className = 'ok';
+
+    // 4) 实时电平表：每帧取时域数据算 RMS
+    const buf = new Float32Array(analyser.fftSize);
+    (function drawMeter() {
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      meterFill.style.width = Math.min(100, rms * 300).toFixed(1) + '%';
+      requestAnimationFrame(drawMeter);
+    })();
+  } catch (err) {
+    statusLine.textContent = '失败：' + err.name + ' - ' + err.message;
+    startBtn.disabled = false;
+  }
+});
+
+// ---------------- __agentShim 探针展示（每秒刷新） ----------------
+setInterval(() => {
+  if (window.__agentShim) {
+    shimOut.textContent = JSON.stringify(window.__agentShim, null, 2);
+  }
+}, 1000);
+</script>
+</body>
+</html>

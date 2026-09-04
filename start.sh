@@ -32,7 +32,7 @@ if [ ! -x "$VENV" ]; then
 fi
 echo "[检查] 校验依赖（缺失会自动用国内镜像安装）…"
 NEED=0
-for pkg in fastapi uvicorn websockets numpy playwright; do
+for pkg in fastapi uvicorn websockets numpy playwright audioop_lts; do
   if ! "$VENV" -c "import $pkg" 2>/dev/null; then
     echo "  - 安装 $pkg …"
     "$VENV" -m pip install -q -i "$PIP_MIRROR" "$pkg" && NEED=1

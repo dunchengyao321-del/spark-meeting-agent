@@ -428,6 +428,29 @@ function addMsg(cls, who, text, partial, ts) {
 
 function sysMsg(text) { addMsg("sys", "", text, false); }
 
+// ---- 换会自动清空：进入新会议后，上一场留在页面上的实时记录全部重置 ----
+let currentMeetingId = "";
+function clearLiveView(note) {
+  stream.innerHTML = "";
+  firstEvent = true;              // 下一条实时消息到达时替换提示语
+  msgCount = 0; chatCount = 0; screenCount = 0;
+  $("#msgCount").textContent = "0 条";
+  $("#ctrlMsgCount").textContent = 0;
+  $("#stChat").textContent = 0;
+  $("#stScreen").textContent = 0;
+  $("#metricsBody").innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim)">暂无数据</td></tr>';
+  $("#screenShot").removeAttribute("src");
+  $("#screenMeta").textContent = "尚未收到投屏";
+  $("#pendingCount").textContent = 0;
+  $("#pendingList").innerHTML = '<div style="color:var(--dim)">需要本人解释或拍板的问题会记录在这里</div>';
+  if (note) {
+    const d = document.createElement("div");
+    d.className = "msg sys";
+    d.textContent = note;
+    stream.appendChild(d);
+  }
+}
+
 function speakerClass(sp) {
   if (sp === "agent") return "agent";
   if (sp === "我" || sp === "控制台") return "me";
@@ -601,6 +624,7 @@ async function loadBridgeCfg() {
   try {
     const d = await (await fetch(`${MONITOR_API}/agent_config`)).json();
     $("#curMeeting").textContent = d.meeting_id || "未入会";
+    if (d.meeting_id && !currentMeetingId) currentMeetingId = d.meeting_id;
     $("#joinMeetingId").value = d.meeting_id || "";
     $("#cfgGain").value = d.downlink_gain ?? "";
     $("#cfgChannel").value = d.pipeline_channel ?? 1;
@@ -632,6 +656,10 @@ $("#btnJoin").onclick = async () => {
     if (d.ok) {
       $("#joinMsg").textContent = d.hint || ("已入会流程启动，正在进入会议 " + id);
       $("#curMeeting").textContent = id;
+      if (id !== currentMeetingId) {
+        currentMeetingId = id;
+        clearLiveView("已进入新会议 " + id + "，上一场的实时记录已自动清空");
+      }
     } else {
       $("#joinMsg").textContent = d.error || "入会失败";
     }
@@ -791,6 +819,16 @@ async function loadMeetingStatus() {
   try { d = await (await fetch(`${MONITOR_API}/api/meeting_status`)).json(); }
   catch { return; }
   const st = d.state || "unknown";
+  // 换会检测（入会动作可能来自其他标签页/命令行）：会议号一变就清空实时面板
+  const mid = d.meeting_id || "";
+  if (mid && !currentMeetingId) {
+    currentMeetingId = mid;
+  } else if (mid && mid !== currentMeetingId) {
+    currentMeetingId = mid;
+    $("#curMeeting").textContent = mid;
+    $("#joinMeetingId").value = mid;
+    clearLiveView("已进入新会议 " + mid + "，上一场的实时记录已自动清空");
+  }
   const badge = $("#meetingState");
   if (st === "active") {
     badge.style.display = "";

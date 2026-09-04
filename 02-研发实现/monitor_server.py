@@ -177,6 +177,12 @@ class Handler(BaseHTTPRequestHandler):
                     f.unlink()
                 except OSError:
                     pass
+            # 换会同步清空「待本人回答」队列：上一场的问题不带入新会议（B 未启动时静默跳过）
+            try:
+                req = urllib.request.Request(f"{B_API}/pending_questions", method="DELETE")
+                urllib.request.urlopen(req, timeout=3).close()
+            except Exception:  # noqa: BLE001
+                pass
         url = f"https://vc.feishu.cn/w/meeting/{meeting_id}"
         debug_port = int(cfg.get("debug_port", 9222))
 

@@ -45,6 +45,8 @@ LAUNCH_ARGS = [
     "--disable-backgrounding-occluded-windows",# 窗口被遮挡时不视为后台
     "--disable-popup-blocking",               # 放行程序点击打开的新标签（自动开妙记页用）
     "--mute-audio",                           # 浏览器整机静音：智能体截获音频在页面内 WebRTC 层，不经扬声器，静音不影响听会
+    # 飞书域名与本机回环绕过系统代理：全局代理会让会议页 WS/媒体连接慢 30 倍甚至卡死在「连接中…」
+    "--proxy-bypass-list=*.feishu.cn;*.larksuite.com;*.feishucdn.com;*.larkoffice.com;<-loopback>",
     "--disable-features=WebRtcHideLocalIpsWithMdns,LocalNetworkAccessChecks,LocalNetworkAccessChecksWarn,PrivateNetworkAccessRespectPreflightResults",
     # ↑ 沙箱内 mDNS 解析失败会导致 ICE 缺候选；公网页面连本地 127.0.0.1 WebSocket 会被 PNA 拦截，一并关闭
 ]
@@ -80,6 +82,20 @@ DETECT_ENDED_JS = """
   return { ended: hit.length >= 1, hit };
 }
 """ % json.dumps(END_HINT_TEXTS, ensure_ascii=False)
+
+# 妙记列表页兜底扫描：登录态下打开 www.feishu.cn/minutes/home（自动跳组织域名），
+# 找列表里「录音中」的妙记条目链接（会议内找不到入口时的可靠路径）。
+MINUTES_HOME_SCAN_JS = r"""
+() => {
+  const skip = ['minutes/home', 'minutes/me', 'minutes/shared', 'minutes/trash'];
+  for (const a of document.querySelectorAll('a[href*="/minutes/"]')) {
+    if (!a.href || skip.some(s => a.href.includes(s))) continue;
+    const text = ((a.closest('li,tr,div') || a).textContent || '');
+    if (text.includes('录音中')) return { minutesUrl: a.href };
+  }
+  return null;
+}
+"""
 
 # 妙记入口探测脚本（在会议页执行）：优先返回页面上的妙记链接交给 Python 新开标签；
 # 找不到链接则依次尝试：确认「开启妙记」弹窗 → 点工具栏「妙记」→ 点开「更多」菜单（下轮再找）。
@@ -349,7 +365,30 @@ def main() -> None:
                                         minutes_cool -= 1
                                     else:
                                         minutes_tried += 1
-                                        if minutes_tried > 36 or minutes_clicks >= 3:
+                                        # 兜底：会议页找不到入口时（游客/免登常见），
+                                        # 借登录态查妙记列表页里「录音中」的条目
+                                        if minutes_tried >= 6 and minutes_tried % 6 == 0:
+                                            try:
+                                                hp = context.new_page()
+                                                hp.goto("https://www.feishu.cn/minutes/home",
+                                                        wait_until="domcontentloaded",
+                                                        timeout=20000)
+                                                hp.wait_for_timeout(3500)
+                                                found = hp.evaluate(MINUTES_HOME_SCAN_JS)
+                                                if found and found.get("minutesUrl"):
+                                                    hp.goto(found["minutesUrl"],
+                                                            wait_until="domcontentloaded",
+                                                            timeout=20000)
+                                                    minutes_done = True
+                                                    log.info("经妙记列表页自动打开录音中的妙记：%s",
+                                                             found["minutesUrl"][:80])
+                                                else:
+                                                    hp.close()
+                                            except PlaywrightError as e:
+                                                log.warning("妙记列表页探测失败: %s", str(e)[:100])
+                                        if minutes_done:
+                                            pass
+                                        elif minutes_tried > 36 or minutes_clicks >= 3:
                                             # ~3 分钟或点击 3 次仍无妙记页 → 放弃自动点击，保留被动检测
                                             minutes_gave_up = True
                                             log.info("未找到妙记入口，停止自动打开"

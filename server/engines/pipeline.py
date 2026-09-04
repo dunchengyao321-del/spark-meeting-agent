@@ -117,7 +117,7 @@ _HOTWORD_CJK_RE = re.compile(r"[一-鿿]{2,8}")
 def _extract_hotwords(kb_store, wake_names, limit: int = 250) -> list[str]:
     """从唤醒名 + 知识库文件名/标题提取领域热词，注入 ASR contextualStrings。
 
-    显著提升「星火」「差旅报销」「dmall」「coupon」「履约」这类词的命中率。
+    显著提升「星火」「差旅报销」「会员积分」「coupon」「履约」这类词的命中率。
     """
     words: list[str] = []
     seen: set[str] = set()

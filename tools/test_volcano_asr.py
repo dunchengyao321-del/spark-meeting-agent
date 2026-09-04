@@ -15,7 +15,7 @@ from server.config_store import load_config  # noqa: E402
 SENTENCES = [
     "星火，帮我总结一下今天的会议内容",
     "履约系统的履约单状态有哪些",
-    "查一下 dmall coupon 的券核销逻辑",
+    "查一下会员 coupon 的券核销逻辑",
 ]
 
 
@@ -36,7 +36,7 @@ async def main() -> int:
     if not asr.configured():
         print("FAIL: 未配置火山语音 Key")
         return 1
-    asr.set_hotwords(["星火", "履约", "履约单", "dmall", "coupon", "券核销"])
+    asr.set_hotwords(["星火", "履约", "履约单", "会员", "coupon", "券核销"])
     print(f"resource_id={asr.resource_id} two_pass={asr.two_pass}")
     fails = 0
     for text in SENTENCES:

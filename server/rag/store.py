@@ -23,7 +23,7 @@ def _tokens(text: str) -> set[str]:
     """检索分词：ASCII 词 + CJK bigram。
 
     不再收录 CJK 单字——单字（"营"）会命中"运营/营销/经营"等海量无关文档，
-    噪音远大于收益，曾导致"联营/自营"问题检索到胖东来周报。
+    噪音远大于收益，曾导致"联营/自营"问题检索到某客户周报。
     """
     tokens = set(ASCII_WORD_RE.findall(text.lower()))
     cjk = CJK_RE.findall(text)

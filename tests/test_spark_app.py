@@ -52,8 +52,8 @@ def main():
                        "feishu_voice.py", ["speak", "你好", "--chat", "测试"])
     check("CLI 飞书发语音入口", ok, str(got))
 
-    ok, got = run_case(["meeting", "start", "588123808", "--name", "deli"],
-                       "meeting_voice_host.py", ["start", "588123808", "--name", "deli"])
+    ok, got = run_case(["meeting", "start", "123456789", "--name", "deli"],
+                       "meeting_voice_host.py", ["start", "123456789", "--name", "deli"])
     check("CLI 会议启动入口", ok, str(got))
 
     print("spark_app:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILED")

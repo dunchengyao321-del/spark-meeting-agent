@@ -45,7 +45,7 @@ def main():
     meeting = sub.add_parser("meeting", help="飞书会议常驻主机")
     meeting.add_argument("meeting_action", choices=["start", "stop", "status"])
     meeting.add_argument("meeting", nargs="?", help="会议号")
-    meeting.add_argument("--name", default="deli")
+    meeting.add_argument("--name", default="星火")
     meeting.add_argument("--password")
     meeting.set_defaults(command_name="meeting")
 

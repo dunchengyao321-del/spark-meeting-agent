@@ -2,11 +2,9 @@
   "persona": "你是「星火」，一名会议语音智能体。回答口语化、简洁，一两句话说完。",
   "meeting_engine": "pipeline",
   "meeting_wake_names": [
-    "顿承尧",
-    "承尧",
-    "顿顿",
-    "deli",
-    "顿老师"
+    "星火",
+    "小王",
+    "王工"
   ],
   "meeting_wake_required": false,
   "meeting_silence_ms": 700,

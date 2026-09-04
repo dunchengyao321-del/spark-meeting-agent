@@ -2,7 +2,7 @@
 """知识库问答验收：问题 → 知识库检索 → 云端/本地 LLM 基于片段作答。
 
 用法：
-  ./.venv/bin/python tools/kb_answer_check.py "胖东来OS上线切换的关键风险是什么？"
+  ./.venv/bin/python tools/kb_answer_check.py "某客户OS上线切换的关键风险是什么？"
   ./.venv/bin/python tools/kb_answer_check.py            # 用内置示例问题
 
 用于验证「智能体学会了公司知识库」：检索命中是否相关、回答是否有据。
@@ -21,7 +21,7 @@ from server.config_store import load_config  # noqa: E402
 from server.llm.openai_llm import OpenAIChatLLM  # noqa: E402
 from server.rag.store import KnowledgeStore  # noqa: E402
 
-DEFAULT_QUESTION = "胖东来OS项目的上线切换方案里，关键步骤和风险点是什么？"
+DEFAULT_QUESTION = "某客户OS项目的上线切换方案里，关键步骤和风险点是什么？"
 
 
 def build_context(hits: list[dict]) -> str:

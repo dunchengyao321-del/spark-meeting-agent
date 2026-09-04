@@ -4,10 +4,10 @@
 
 用法：
   # 启动常驻（浏览器加入会议并保持连接）
-  python3 meeting_voice_host.py start 588123808 --name "deli"
+  python3 meeting_voice_host.py start 123456789 --name "星火"
   
-  # 让 deli 在会议中说话
-  python3 meeting_voice_host.py speak "大家好，我是 deli"
+  # 让星火在会议中说话
+  python3 meeting_voice_host.py speak "大家好，我是星火"
   
   # 停止常驻
   python3 meeting_voice_host.py stop
@@ -100,7 +100,7 @@ def speak_tts(text: str):
         return False
 
 
-async def run_host(meeting_number: str, display_name: str = "deli", password: str = None):
+async def run_host(meeting_number: str, display_name: str = "星火", password: str = None):
     """常驻主机：加入会议，保持连接，监听指令"""
     from playwright.async_api import async_playwright
 
@@ -343,11 +343,11 @@ async def main():
     # start 命令
     start_p = sub.add_parser("start", help="启动常驻主机")
     start_p.add_argument("meeting", help="9 位会议号，或 new 表示以你的账号发起新会议")
-    start_p.add_argument("--name", default="deli", help="显示名称")
+    start_p.add_argument("--name", default="星火", help="显示名称")
     start_p.add_argument("--password", help="会议密码")
     
     # speak 命令
-    speak_p = sub.add_parser("speak", help="让 deli 在会议中说话")
+    speak_p = sub.add_parser("speak", help="让星火在会议中说话")
     speak_p.add_argument("text", help="要说的文本")
 
     # ai 命令

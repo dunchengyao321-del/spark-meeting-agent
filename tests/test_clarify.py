@@ -36,14 +36,14 @@ check("C1 太短→请重复", q is not None and "没听全" in q, q)
 check("C2 空文本→不澄清", clarification_for("   ", None) is None)
 
 # 3. weak hits only -> never disambiguate (the 差旅报销 regression)
-weak = [hit(0.349), hit(0.322, source="knowledge/交付知识库/项目档案/胖东来OS项目/周报.md")]
+weak = [hit(0.349), hit(0.322, source="knowledge/交付知识库/项目档案/华东OS项目/周报.md")]
 check("C3 弱命中不澄清", clarification_for("差旅报销多久到账", weak) is None)
 
 # 4. strong tie, distinct names -> disambiguate
-strong = [hit(1.9, source="knowledge/交付知识库/项目档案/株百项目/株百验收标准.md"),
-          hit(1.8, source="knowledge/交付知识库/项目档案/胖东来项目/胖东来验收流程.md")]
+strong = [hit(1.9, source="knowledge/交付知识库/项目档案/华北项目/华北验收标准.md"),
+          hit(1.8, source="knowledge/交付知识库/项目档案/华南项目/华南验收流程.md")]
 q = clarification_for("验收标准", strong)
-check("C4 强平局→澄清", q is not None and "株百验收标准" in q and "胖东来验收流程" in q
+check("C4 强平局→澄清", q is not None and "华北验收标准" in q and "华南验收流程" in q
       and "还是" in q, q)
 check("C4b 名称去路径去扩展名", q and ".md" not in q and "knowledge" not in q, q)
 

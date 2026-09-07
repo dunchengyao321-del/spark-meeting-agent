@@ -37,3 +37,7 @@ external_transcripts/
 
 # ---- 知识库内容（数据而非代码） ----
 kb/
+
+# 运行时状态文件（由系统运行时覆写，模板见 *.example）
+02-研发实现/agent_config.json
+02-研发实现/latest_screen.ts
